@@ -347,8 +347,10 @@ function renderMarkdown(raw) {
   text = '<p>' + text + '</p>';
   text = text.replace(/<p><\/p>/g, '');
 
-  // Single newlines within paragraphs
-  text = text.replace(/(?<!>)\n(?!<)/g, '<br>');
+  // Single newlines within paragraphs (line-by-line — avoids lookbehind for iframe compat)
+  text = text.split('\n').map(line =>
+    /^<[a-z/]/.test(line.trim()) ? line : line + '<br>'
+  ).join('\n');
 
   // Clean up paragraphs wrapping block elements
   text = text.replace(/<p>(<(?:h[1-6]|ul|ol|table|pre)[^>]*>)/g, '$1');
