@@ -74,13 +74,16 @@ function renderApiKeyList() {
     row.className = 'api-key-row';
     const inputId = `key-${p.id}`;
     const resultId = `result-${p.id}`;
+    const isOllama = p.id === 'ollama';
     row.innerHTML = `
-      <label class="api-key-label" for="${inputId}">${p.label}</label>
+      <label class="api-key-label" for="${inputId}">
+        ${p.label}${isOllama ? '<span class="api-key-sublabel"> — Server URL</span>' : ''}
+      </label>
       <div class="api-key-input-group">
-        <input type="password" id="${inputId}" class="api-key-input"
+        <input type="${isOllama ? 'text' : 'password'}" id="${inputId}" class="api-key-input"
                placeholder="${p.placeholder}"
                value="${currentSettings.apiKeys[p.id] || ''}" autocomplete="off">
-        <button class="validate-btn" data-provider="${p.id}">Validate</button>
+        <button class="validate-btn" data-provider="${p.id}">${isOllama ? 'Test' : 'Validate'}</button>
       </div>
       <div class="validate-result" id="${resultId}"></div>
     `;
@@ -109,7 +112,7 @@ async function validateKey(providerId) {
       provider: providerId,
       apiKey: key
     });
-    showResult(result, valid ? 'ok' : 'fail', valid ? '✓ Valid' : '✗ Invalid or unreachable');
+    showResult(result, valid?.ok ? 'ok' : 'fail', valid?.ok ? '✓ Valid' : '✗ Invalid or unreachable');
   } catch (_) {
     // Fallback: just mark as saved without network check
     showResult(result, 'ok', '✓ Saved (not verified)');
