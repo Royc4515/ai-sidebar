@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Sidebar — Settings</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <div class="settings-root">
+    <header class="settings-header">
+      <div class="header-logo">✨</div>
+      <div>
+        <h1>AI Sidebar</h1>
+        <p class="header-sub">Configure your AI provider and preferences</p>
+      </div>
+    </header>
+
+    <!-- Provider Selection -->
+    <section class="settings-section">
+      <h2>Active Provider</h2>
+      <div class="provider-grid" id="provider-grid">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+    <!-- API Keys -->
+    <section class="settings-section">
+      <h2>API Keys</h2>
+      <p class="section-hint">Keys are stored locally and never leave your browser.</p>
+      <div id="api-key-list">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+    <!-- Appearance -->
+    <section class="settings-section">
+      <h2>Appearance</h2>
+      <div class="settings-row">
+        <label for="sidebar-position">Sidebar position</label>
+        <select id="sidebar-position">
+          <option value="right">Right</option>
+          <option value="left">Left</option>
+        </select>
+      </div>
+      <div class="settings-row">
+        <label for="sidebar-width">Sidebar width (px)</label>
+        <input type="number" id="sidebar-width" min="280" max="600" step="10" value="380">
+      </div>
+    </section>
+
+    <!-- Language -->
+    <section class="settings-section">
+      <h2>Language</h2>
+      <div class="settings-row">
+        <label for="response-language">AI response language</label>
+        <select id="response-language">
+          <option value="auto">Auto (match page)</option>
+          <option value="en">English</option>
+          <option value="he">Hebrew (עברית)</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+          <option value="de">German</option>
+          <option value="zh">Chinese</option>
+          <option value="ar">Arabic</option>
+          <option value="ja">Japanese</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Save -->
+    <div class="settings-footer">
+      <div id="save-status" class="save-status"></div>
+      <button id="save-btn" class="save-btn">Save Settings</button>
+    </div>
+  </div>
+
+  <script src="settings.js"></script>
+</body>
+</html>

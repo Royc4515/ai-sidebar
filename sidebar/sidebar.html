@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Sidebar</title>
+  <link rel="stylesheet" href="sidebar.css">
+</head>
+<body>
+  <div id="sidebar-root">
+
+    <!-- Header -->
+    <header class="sidebar-header">
+      <div class="sidebar-brand">
+        <span class="sidebar-logo">✨</span>
+        <span class="sidebar-title">AI Sidebar</span>
+      </div>
+      <div class="sidebar-header-right">
+        <span class="provider-badge" id="provider-badge">—</span>
+        <button class="icon-btn" id="settings-btn" title="Settings">⚙</button>
+        <button class="icon-btn" id="close-btn" title="Close (Alt+A)">✕</button>
+      </div>
+    </header>
+
+    <!-- Onboarding (shown when no provider is configured) -->
+    <div class="onboarding" id="onboarding" style="display:none">
+      <div class="onboarding-icon">🔑</div>
+      <h3>Set up your AI provider</h3>
+      <p>Open Settings to choose a provider (Claude, Gemini, Groq, etc.) and add your API key.</p>
+      <button class="primary-btn" id="onboarding-settings-btn">Open Settings</button>
+    </div>
+
+    <!-- Main content (hidden during onboarding) -->
+    <div id="main-content">
+
+      <!-- Page-level actions -->
+      <div class="action-section">
+        <div class="action-section-label">Page actions</div>
+        <div class="action-row">
+          <button class="action-btn" data-action="summarize">
+            <span class="action-icon">📄</span>
+            <span>Summarize</span>
+          </button>
+          <button class="action-btn" data-action="extract">
+            <span class="action-icon">📊</span>
+            <span>Extract Data</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Ask input -->
+      <div class="ask-section">
+        <div class="action-section-label">Ask a question</div>
+        <div class="ask-row">
+          <textarea
+            id="ask-input"
+            class="ask-input"
+            placeholder="Ask anything about this page…"
+            rows="2"
+          ></textarea>
+          <button class="ask-send-btn" id="ask-btn" title="Ask (Enter)">→</button>
+        </div>
+      </div>
+
+      <!-- Selection-based actions (shown when text is selected) -->
+      <div class="selection-section" id="selection-section" style="display:none">
+        <div class="action-section-label">Selection actions</div>
+        <div class="selected-preview-box">
+          <div class="selected-preview-label">Selected text</div>
+          <div class="selected-preview" id="selected-preview"></div>
+        </div>
+        <div class="action-row">
+          <button class="action-btn" data-action="explain">
+            <span class="action-icon">💡</span>
+            <span>Explain</span>
+          </button>
+          <button class="action-btn" data-action="reply">
+            <span class="action-icon">💬</span>
+            <span>Reply</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Response area -->
+      <div class="response-area" id="response-area">
+        <!-- Placeholder -->
+        <div class="response-placeholder" id="response-placeholder">
+          <span class="placeholder-icon">✨</span>
+          <span>Pick an action above to get started</span>
+        </div>
+
+        <!-- Loading -->
+        <div class="loading-state" id="loading-state" style="display:none">
+          <div class="loading-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="loading-text" id="loading-text">Thinking…</div>
+        </div>
+
+        <!-- Response content -->
+        <div class="response-content" id="response-content" style="display:none">
+          <div class="response-header">
+            <span class="response-action-label" id="response-action-label"></span>
+            <button class="copy-btn" id="copy-btn" title="Copy to clipboard">Copy</button>
+          </div>
+          <div class="response-body" id="response-body"></div>
+        </div>
+
+        <!-- Error -->
+        <div class="error-state" id="error-state" style="display:none">
+          <div class="error-icon">⚠️</div>
+          <div class="error-message" id="error-message"></div>
+          <button class="retry-btn" id="retry-btn">Try again</button>
+        </div>
+      </div>
+
+    </div><!-- /main-content -->
+  </div><!-- /sidebar-root -->
+
+  <!-- Provider scripts loaded in dependency order -->
+  <script src="../providers/base-provider.js"></script>
+  <script src="../providers/claude-provider.js"></script>
+  <script src="../providers/gemini-provider.js"></script>
+  <script src="../providers/openai-provider.js"></script>
+  <script src="../providers/grok-provider.js"></script>
+  <script src="../providers/groq-provider.js"></script>
+  <script src="../providers/ollama-provider.js"></script>
+  <script src="../providers/provider-factory.js"></script>
+  <script src="sidebar.js"></script>
+</body>
+</html>
