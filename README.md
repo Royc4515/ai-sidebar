@@ -14,21 +14,35 @@ routing prompts to one of six AI providers with streaming responses.**
 
 </div>
 
+<br>
+
+**[Features](#features) · [Architecture](#architecture) · [Providers](#providers) · [Install](#install)**
+
 ---
 
 ## Features
 
+### Provider System
+
 - **Six AI providers** — Claude, Gemini, OpenAI, Grok, Groq, and Ollama; selected at runtime via `ProviderFactory`
 - **OOP provider hierarchy** — `BaseProvider` abstract class with concrete subclasses; `GrokProvider` and `GroqProvider` extend `OpenAIProvider` by passing a different `baseUrl` to `super()`
+
+### Extension Platform
+
 - **MV3 Service Worker** — handles `Alt+A` keyboard command, context menu registration, and live `VALIDATE_KEY` requests with a 10-second `Promise.race` timeout
 - **Cross-origin `postMessage` security** — sidebar iframe validates `event.source === window.parent` before accepting any message; user-supplied text is always set via `textContent`, never `innerHTML`
-- **Page content extraction** — `extractPageContent()` walks semantic selectors (`article`, `main`, `[role="main"]`, `.article-body`, `.post-content`…), strips nav/chrome nodes, and truncates at 12,000 chars
+
+### Content & Rendering
+
+- **Page content extraction** — `extractPageContent()` walks semantic selectors (`article`, `main`, `[role="main"]`, `.article-body`…), strips nav/chrome nodes, and truncates at 12,000 chars
 - **Live API key validation** — settings page sends `VALIDATE_KEY` to the service worker, which instantiates the provider and calls `validate()` against the real API
-- **Custom Markdown-to-HTML renderer** — hand-rolled `renderMarkdown()` covers headings, bold/italic, code blocks, tables, and lists; output is sanitized by a DOM-based allowlist (`sanitizeHTML()`) before insertion
+- **Custom Markdown renderer** — hand-rolled `renderMarkdown()` covers headings, bold/italic, code blocks, tables, and lists; output is sanitized by a DOM-based allowlist (`sanitizeHTML()`) before insertion
 
 ---
 
 ## Architecture
+
+### Class Hierarchy
 
 ```mermaid
 classDiagram
@@ -47,6 +61,21 @@ classDiagram
     BaseProvider <|-- OllamaProvider
     OpenAIProvider <|-- GrokProvider
     OpenAIProvider <|-- GroqProvider
+```
+
+### Runtime Flow
+
+```mermaid
+flowchart LR
+    A["Alt+A\nor Context Menu"] --> SW["Service Worker"]
+    SW -->|"chrome.tabs\n.sendMessage"| CS["content.js"]
+    CS -->|"creates iframe"| SB["sidebar.js"]
+    SB <-->|"postMessage\nPAGE_CONTENT\nSELECTED_TEXT"| CS
+    SB --> PF["ProviderFactory\n.get()"]
+    PF --> PR["Provider"]
+    PR -->|"fetch + SSE"| API["AI API"]
+    API -.->|"token stream"| PR
+    PR -.->|"onChunk"| SB
 ```
 
 `ProviderFactory.get(name, apiKeys, selectedModels)` applies the **Strategy pattern** — the sidebar calls `provider.completeStream()` with no knowledge of which class is running. `GrokProvider` and `GroqProvider` are one-liners that pass a different `baseUrl` to `super()`, reusing the entire `OpenAIProvider` implementation. Switching providers requires only a single `chrome.storage.sync` write.
