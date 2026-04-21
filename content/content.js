@@ -13,12 +13,19 @@
   if (window.__aiSidebarLoaded) return;
   window.__aiSidebarLoaded = true;
 
+  // ── Constants ────────────────────────────────────────────────────────────
+
+  const CONTENT_MAX_CHARS  = 12000;
+  const SELECTION_MIN_CHARS = 10;
+
   // ── State ────────────────────────────────────────────────────────────────
 
-  let frame       = null;   // The sidebar <iframe>
-  let floatBtn    = null;   // The floating selection button
+  let frame        = null;   // The sidebar <iframe>
+  let floatBtn     = null;   // The floating selection button
   let selectedText = '';
   let sidebarOpen  = false;
+  let lastMouseX   = 0;      // Last mouseup cursor position (fallback for float btn)
+  let lastMouseY   = 0;
 
   // ── Sidebar iframe ────────────────────────────────────────────────────────
 
@@ -32,7 +39,6 @@
     document.documentElement.appendChild(frame);
     applyPosition();
     frame.addEventListener('load', () => {
-      // Send current selection + fresh page content on load
       notifyFrame({ type: 'SIDEBAR_OPENED' });
       sendPageContent();
       if (selectedText) sendSelectedText();
@@ -78,16 +84,9 @@
   // ── Page content extraction ───────────────────────────────────────────────
 
   function extractPageContent() {
-    // Prefer semantic content elements
     const candidates = [
-      'article',
-      'main',
-      '[role="main"]',
-      '.article-body',
-      '.post-content',
-      '.entry-content',
-      '#content',
-      '.content'
+      'article', 'main', '[role="main"]',
+      '.article-body', '.post-content', '.entry-content', '#content', '.content'
     ];
 
     let el = null;
@@ -97,16 +96,14 @@
     }
     el = el || document.body;
 
-    // Clone and strip scripts/styles
     const clone = el.cloneNode(true);
     clone.querySelectorAll('script, style, nav, header, footer, aside, [aria-hidden]')
       .forEach(n => n.remove());
 
     const text = (clone.innerText || clone.textContent || '').replace(/\s+/g, ' ').trim();
 
-    // Truncate to ~3000 tokens (≈12,000 chars) — edge case from plan section 6
-    if (text.length > 12000) {
-      return text.substring(0, 12000) + '\n\n[Content truncated to fit context window]';
+    if (text.length > CONTENT_MAX_CHARS) {
+      return text.substring(0, CONTENT_MAX_CHARS) + '\n\n[Content truncated to fit context window]';
     }
     return text;
   }
@@ -135,39 +132,34 @@
   // ── Message relay: sidebar iframe → page ──────────────────────────────────
 
   window.addEventListener('message', (event) => {
-    // Only trust messages from our own sidebar frame
     if (!frame || event.source !== frame.contentWindow) return;
 
     const msg = event.data;
     if (!msg || typeof msg !== 'object') return;
 
     switch (msg.type) {
-      case 'CLOSE_SIDEBAR':
-        closeSidebar();
-        break;
-      case 'REQUEST_PAGE_CONTENT':
-        sendPageContent();
-        break;
-      case 'REQUEST_SELECTED_TEXT':
-        sendSelectedText();
-        break;
+      case 'CLOSE_SIDEBAR':         closeSidebar();     break;
+      case 'REQUEST_PAGE_CONTENT':  sendPageContent();  break;
+      case 'REQUEST_SELECTED_TEXT': sendSelectedText(); break;
     }
   });
 
   // ── Text selection → floating button ──────────────────────────────────────
 
   document.addEventListener('mouseup', (e) => {
-    // Don't trigger inside our sidebar
+    // Capture cursor position for float button fallback placement
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
+
     if (frame && frame.contains(e.target)) return;
 
     setTimeout(() => {
       const selection = window.getSelection();
       const text = selection ? selection.toString().trim() : '';
 
-      if (text.length > 10) {
+      if (text.length > SELECTION_MIN_CHARS) {
         selectedText = text;
         showFloatBtn(selection);
-        // Also relay to sidebar if open
         if (sidebarOpen) sendSelectedText();
       } else if (!e.target.closest('#ai-sidebar-float-btn')) {
         selectedText = '';
@@ -195,15 +187,29 @@
       const scrollX = window.scrollX || window.pageXOffset;
       const scrollY = window.scrollY || window.pageYOffset;
 
-      // Position below selection, clamped to viewport
+      // Guard against zero rects (selection in nested iframe or shadow DOM)
+      if (!rect || (rect.width === 0 && rect.height === 0)) {
+        // Fall back to last known mouse cursor position
+        const top  = Math.min(lastMouseY + scrollY + 6, scrollY + window.innerHeight - 40);
+        const left = Math.min(lastMouseX + scrollX, scrollX + window.innerWidth - 80);
+        floatBtn.style.top  = top + 'px';
+        floatBtn.style.left = left + 'px';
+        floatBtn.style.display = 'flex';
+        return;
+      }
+
       let top  = scrollY + rect.bottom + 6;
       let left = scrollX + rect.left;
-      const maxLeft = scrollX + window.innerWidth - 80;
-      if (left > maxLeft) left = maxLeft;
+      // Clamp to viewport bounds
+      if (left > scrollX + window.innerWidth - 80) left = scrollX + window.innerWidth - 80;
+      if (top  > scrollY + window.innerHeight - 40) top  = scrollY + window.innerHeight - 40;
 
       floatBtn.style.top  = top + 'px';
       floatBtn.style.left = left + 'px';
-    } catch (_) {}
+    } catch (_) {
+      floatBtn.style.display = 'none';
+      return;
+    }
 
     floatBtn.style.display = 'flex';
   }
@@ -212,7 +218,6 @@
     if (floatBtn) floatBtn.style.display = 'none';
   }
 
-  // Hide float button on scroll/click-elsewhere
   document.addEventListener('mousedown', (e) => {
     if (floatBtn && !floatBtn.contains(e.target)) hideFloatBtn();
   });

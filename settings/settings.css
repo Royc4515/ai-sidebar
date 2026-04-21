@@ -207,6 +207,7 @@ body {
 
 .validate-result.ok   { color: var(--success); }
 .validate-result.fail { color: var(--error); }
+.validate-result.warn { color: #e8a838; }
 
 /* Settings rows */
 .settings-row {
