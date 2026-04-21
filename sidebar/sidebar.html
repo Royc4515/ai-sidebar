@@ -81,6 +81,15 @@
         </div>
       </div>
 
+      <!-- Conversation history (shown when there are ask turns) -->
+      <div class="conversation-section" id="conversation-section" style="display:none">
+        <div class="conversation-header">
+          <span class="action-section-label" style="margin-bottom:0">Conversation</span>
+          <button class="new-chat-btn" id="new-chat-btn" title="Start new conversation">+ New</button>
+        </div>
+        <div class="conversation-history" id="conversation-history"></div>
+      </div>
+
       <!-- Response area -->
       <div class="response-area" id="response-area">
         <!-- Placeholder -->
@@ -112,6 +121,16 @@
           <div class="error-message" id="error-message"></div>
           <button class="retry-btn" id="retry-btn">Try again</button>
         </div>
+      </div>
+
+      <!-- Past responses history panel -->
+      <div class="history-panel" id="history-panel" style="display:none">
+        <button class="history-toggle" id="history-toggle">
+          <span>Past responses</span>
+          <span class="history-count" id="history-count">0</span>
+          <span class="history-arrow" id="history-arrow">▾</span>
+        </button>
+        <div class="history-list" id="history-list" style="display:none"></div>
       </div>
 
     </div><!-- /main-content -->

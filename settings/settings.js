@@ -3,6 +3,8 @@
  * All data stored in chrome.storage.sync.
  */
 
+const DEFAULT_WIDTH = 380;
+
 const PROVIDERS = [
   { id: 'claude',  label: 'Claude',         model: 'claude-sonnet-4-6',     placeholder: 'sk-ant-...',              free: false },
   { id: 'gemini',  label: 'Gemini',          model: 'gemini-2.0-flash',      placeholder: 'AIza...',                 free: true  },
@@ -12,12 +14,22 @@ const PROVIDERS = [
   { id: 'ollama',  label: 'Ollama (local)',  model: 'local model',           placeholder: 'http://localhost:11434',  free: true  }
 ];
 
+// Expected key format patterns — used to warn (not block) on unusual input
+const KEY_PATTERNS = {
+  claude: /^sk-ant-/,
+  openai: /^sk-/,
+  grok:   /^xai-/,
+  groq:   /^gsk_/,
+  gemini: /^AIza/,
+  ollama: /^https?:\/\//
+};
+
 let currentSettings = {
-  activeProvider: '',
-  apiKeys: {},
+  activeProvider:  '',
+  apiKeys:         {},
   sidebarPosition: 'right',
-  sidebarWidth: 380,
-  language: 'auto'
+  sidebarWidth:    DEFAULT_WIDTH,
+  language:        'auto'
 };
 
 // ── Load settings ──────────────────────────────────────────────────────────
@@ -30,13 +42,13 @@ async function loadSettings() {
     activeProvider:  stored.activeProvider  || '',
     apiKeys:         stored.apiKeys         || {},
     sidebarPosition: stored.sidebarPosition || 'right',
-    sidebarWidth:    stored.sidebarWidth    || 380,
+    sidebarWidth:    stored.sidebarWidth    || DEFAULT_WIDTH,
     language:        stored.language        || 'auto'
   };
   renderProviderGrid();
   renderApiKeyList();
-  document.getElementById('sidebar-position').value = currentSettings.sidebarPosition;
-  document.getElementById('sidebar-width').value    = currentSettings.sidebarWidth;
+  document.getElementById('sidebar-position').value  = currentSettings.sidebarPosition;
+  document.getElementById('sidebar-width').value     = currentSettings.sidebarWidth;
   document.getElementById('response-language').value = currentSettings.language;
 }
 
@@ -70,9 +82,9 @@ function renderApiKeyList() {
   const list = document.getElementById('api-key-list');
   list.innerHTML = '';
   for (const p of PROVIDERS) {
-    const row = document.createElement('div');
-    row.className = 'api-key-row';
-    const inputId = `key-${p.id}`;
+    const row      = document.createElement('div');
+    row.className  = 'api-key-row';
+    const inputId  = `key-${p.id}`;
     const resultId = `result-${p.id}`;
     const isOllama = p.id === 'ollama';
     row.innerHTML = `
@@ -90,7 +102,6 @@ function renderApiKeyList() {
     list.appendChild(row);
   }
 
-  // Validate buttons
   list.querySelectorAll('.validate-btn').forEach(btn => {
     btn.addEventListener('click', () => validateKey(btn.dataset.provider));
   });
@@ -102,19 +113,29 @@ async function validateKey(providerId) {
   const key    = input.value.trim();
   if (!key) { showResult(result, 'fail', 'Enter a key first'); return; }
 
-  result.textContent = 'Checking…';
-  result.className   = 'validate-result';
+  // Warn if key format looks unusual (non-blocking)
+  const pattern = KEY_PATTERNS[providerId];
+  if (pattern && !pattern.test(key)) {
+    result.textContent = '⚠ Key format looks unusual, validating anyway…';
+    result.className   = 'validate-result warn';
+  } else {
+    result.textContent = 'Checking…';
+    result.className   = 'validate-result';
+  }
 
   try {
-    // Dynamically load provider scripts to validate
     const valid = await chrome.runtime.sendMessage({
       type: 'VALIDATE_KEY',
       provider: providerId,
       apiKey: key
     });
-    showResult(result, valid?.ok ? 'ok' : 'fail', valid?.ok ? '✓ Valid' : '✗ Invalid or unreachable');
+    if (valid?.ok) {
+      showResult(result, 'ok', '✓ Valid');
+    } else {
+      const errMsg = valid?.error || 'Invalid or unreachable';
+      showResult(result, 'fail', `✗ ${errMsg}`);
+    }
   } catch (_) {
-    // Fallback: just mark as saved without network check
     showResult(result, 'ok', '✓ Saved (not verified)');
   }
 }
@@ -124,13 +145,12 @@ function showResult(el, cls, msg) {
   el.className   = `validate-result ${cls}`;
   setTimeout(() => {
     if (el.textContent === msg) el.textContent = '';
-  }, 4000);
+  }, 5000);
 }
 
 // ── Save ──────────────────────────────────────────────────────────────────
 
 document.getElementById('save-btn').addEventListener('click', async () => {
-  // Collect API keys from inputs
   const apiKeys = {};
   for (const p of PROVIDERS) {
     const val = document.getElementById(`key-${p.id}`)?.value.trim();
@@ -141,7 +161,7 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     activeProvider:  currentSettings.activeProvider,
     apiKeys,
     sidebarPosition: document.getElementById('sidebar-position').value,
-    sidebarWidth:    parseInt(document.getElementById('sidebar-width').value, 10) || 380,
+    sidebarWidth:    parseInt(document.getElementById('sidebar-width').value, 10) || DEFAULT_WIDTH,
     language:        document.getElementById('response-language').value
   };
 

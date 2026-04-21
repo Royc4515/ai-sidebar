@@ -4,7 +4,6 @@
  */
 
 // Load all provider classes at startup so VALIDATE_KEY handler can use them.
-// Paths are relative to the extension root (not this file's directory).
 importScripts(
   'providers/base-provider.js',
   'providers/openai-provider.js',   // must come before grok/groq (they extend it)
@@ -23,7 +22,6 @@ chrome.commands.onCommand.addListener(async (command) => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id) return;
     chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_SIDEBAR' }).catch(() => {
-      // Content script not yet injected — inject it first
       chrome.scripting.executeScript({
         target: { tabId: tab.id },
         files: ['content/content.js']
@@ -51,17 +49,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
       sendResponse({ url: tab?.url, title: tab?.title });
     });
-    return true; // async response
+    return true;
   }
 
   // ── API key / URL validation ──────────────────────────────────────────────
-  // Called by settings.js when user clicks "Validate". Makes a real API call
-  // using the provider class so we get an honest pass/fail.
   if (msg.type === 'VALIDATE_KEY') {
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Validation timed out after 10 seconds')), 10000)
+    );
     (async () => {
       try {
         const p  = ProviderFactory.get(msg.provider, { [msg.provider]: msg.apiKey });
-        const ok = await p.validate(msg.apiKey);
+        const ok = await Promise.race([p.validate(msg.apiKey), timeout]);
         sendResponse({ ok: !!ok });
       } catch (e) {
         sendResponse({ ok: false, error: e.message });
