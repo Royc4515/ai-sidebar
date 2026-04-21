@@ -1,6 +1,15 @@
 # AI Sidebar
 
+<p>
+  <img src="https://img.shields.io/badge/Chrome%20Extension-MV3-4285F4?logo=googlechrome&logoColor=white" alt="Chrome MV3">
+  <img src="https://img.shields.io/badge/providers-6-8b5cf6" alt="6 providers">
+  <img src="https://img.shields.io/badge/build-none-22c55e" alt="no build step">
+  <img src="https://img.shields.io/badge/version-1.0.0-64748b" alt="v1.0.0">
+</p>
+
 Chrome extension that injects a context-aware AI assistant sidebar into any webpage, routing prompts to one of six AI providers with streaming responses.
+
+---
 
 ## Features
 
@@ -12,9 +21,32 @@ Chrome extension that injects a context-aware AI assistant sidebar into any webp
 - **Live API key validation** — settings page sends a `VALIDATE_KEY` message to the service worker, which instantiates the provider class and calls `validate()` against the real API
 - **Custom Markdown-to-HTML renderer** — hand-rolled `renderMarkdown()` handles headings, bold/italic, inline and fenced code, tables, ordered and unordered lists, and links; output is passed through a DOM-based allowlist sanitizer (`sanitizeHTML()`) before insertion
 
+---
+
 ## Architecture
 
-All six providers implement `BaseProvider`, which defines the `complete()`, `completeStream()` (falls back to `complete()` if not overridden), `validate()`, and `getName()` interface, plus shared helpers `_handleError()`, `_parseSSEStream()`, and `_parseNDJSONStream()`. Concrete subclasses override only what differs per API. `GrokProvider` and `GroqProvider` are one-liners that call `super()` with a different `baseUrl`, reusing the entire `OpenAIProvider` implementation. `ProviderFactory.get(name, apiKeys, selectedModels)` applies the Strategy pattern: the sidebar calls `provider.completeStream()` with no knowledge of which class is running, and switching providers requires only a single `chrome.storage.sync` write.
+```mermaid
+classDiagram
+    class BaseProvider {
+        +complete()
+        +completeStream()
+        +validate()
+        +getName()
+        #_handleError()
+        #_parseSSEStream()
+        #_parseNDJSONStream()
+    }
+    BaseProvider <|-- ClaudeProvider
+    BaseProvider <|-- GeminiProvider
+    BaseProvider <|-- OpenAIProvider
+    BaseProvider <|-- OllamaProvider
+    OpenAIProvider <|-- GrokProvider
+    OpenAIProvider <|-- GroqProvider
+```
+
+`ProviderFactory.get(name, apiKeys, selectedModels)` applies the Strategy pattern — the sidebar calls `provider.completeStream()` with no knowledge of which class is running. `GrokProvider` and `GroqProvider` are one-liners that pass a different `baseUrl` to `super()`, reusing the entire `OpenAIProvider` implementation. Switching providers requires only a single `chrome.storage.sync` write.
+
+---
 
 ## Providers
 
@@ -27,6 +59,8 @@ All six providers implement `BaseProvider`, which defines the `complete()`, `com
 | Groq | `GroqProvider` extends `OpenAIProvider` | `llama-3.3-70b-versatile` | `llama-3.1-8b-instant`, `gemma2-9b-it` |
 | Ollama (local) | `OllamaProvider` | `llama3.2` | any locally pulled model |
 
+---
+
 ## Install
 
 1. Clone or download this repository.
@@ -34,4 +68,4 @@ All six providers implement `BaseProvider`, which defines the `complete()`, `com
 3. Enable **Developer mode** (toggle, top-right).
 4. Click **Load unpacked** and select the `ai-sidebar` folder.
 
-No build step required — plain HTML, CSS, and JS.
+> No build step required — plain HTML, CSS, and JS.
