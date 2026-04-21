@@ -174,6 +174,8 @@ function requestPageContent() {
 }
 
 window.addEventListener('message', (event) => {
+  // Only accept messages from the parent frame (content.js)
+  if (event.source !== window.parent) return;
   const msg = event.data;
   if (!msg || typeof msg !== 'object') return;
 
@@ -710,7 +712,7 @@ function renderTables(text) {
         if (isAlignRow(row)) { html += '</thead><tbody>'; inHead = false; continue; }
         const cells = row.split('|').filter((_, i, a) => i > 0 && i < a.length - 1);
         const tag   = inHead ? 'th' : 'td';
-        html += '<tr>' + cells.map(c => `<${tag}>${c.trim()}</${tag}>`).join('') + '</tr>';
+        html += '<tr>' + cells.map(c => `<${tag}>${sanitizeText(c.trim())}</${tag}>`).join('') + '</tr>';
       }
       html += (inHead ? '' : '</tbody>') + '</table>';
       return html;
