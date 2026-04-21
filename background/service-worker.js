@@ -59,7 +59,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     );
     (async () => {
       try {
-        const p  = ProviderFactory.get(msg.provider, { [msg.provider]: msg.apiKey });
+        const p  = ProviderFactory.get(msg.provider, { [msg.provider]: msg.apiKey }, {});
         const ok = await Promise.race([p.validate(msg.apiKey), timeout]);
         sendResponse({ ok: !!ok });
       } catch (e) {

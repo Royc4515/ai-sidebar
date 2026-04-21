@@ -3,10 +3,10 @@
  * Docs: https://docs.anthropic.com/en/api/messages
  */
 class ClaudeProvider extends BaseProvider {
-  constructor(apiKey) {
+  constructor(apiKey, model) {
     super();
     this.apiKey  = apiKey;
-    this.model   = 'claude-sonnet-4-6';
+    this.model   = model || 'claude-sonnet-4-6';
     this.baseUrl = 'https://api.anthropic.com/v1/messages';
   }
 

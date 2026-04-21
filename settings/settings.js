@@ -14,6 +14,35 @@ const PROVIDERS = [
   { id: 'ollama',  label: 'Ollama (local)',  model: 'local model',           placeholder: 'http://localhost:11434',  free: true  }
 ];
 
+// Available models per provider (ollama excluded — user configures their own)
+const MODELS = {
+  claude: [
+    { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5 — fastest, cheapest' },
+    { id: 'claude-sonnet-4-6',         label: 'Sonnet 4.6 — balanced (default)' },
+    { id: 'claude-opus-4-7',           label: 'Opus 4.7 — most capable' },
+  ],
+  gemini: [
+    { id: 'gemini-2.0-flash',  label: 'Flash 2.0 — fast (default)' },
+    { id: 'gemini-1.5-flash',  label: 'Flash 1.5 — fast & cheap' },
+    { id: 'gemini-1.5-pro',    label: 'Pro 1.5 — more capable' },
+    { id: 'gemini-2.5-pro',    label: 'Pro 2.5 — most capable' },
+  ],
+  openai: [
+    { id: 'gpt-4o-mini', label: 'GPT-4o mini — cheap (default)' },
+    { id: 'gpt-4o',      label: 'GPT-4o — more capable' },
+    { id: 'o4-mini',     label: 'o4-mini — reasoning' },
+  ],
+  grok: [
+    { id: 'grok-3-mini', label: 'Grok 3 mini — fast (default)' },
+    { id: 'grok-3',      label: 'Grok 3 — more capable' },
+  ],
+  groq: [
+    { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B (default)' },
+    { id: 'llama-3.1-8b-instant',    label: 'Llama 3.1 8B — fastest' },
+    { id: 'gemma2-9b-it',            label: 'Gemma 2 9B' },
+  ],
+};
+
 // Expected key format patterns — used to warn (not block) on unusual input
 const KEY_PATTERNS = {
   claude: /^sk-ant-/,
@@ -27,6 +56,7 @@ const KEY_PATTERNS = {
 let currentSettings = {
   activeProvider:  '',
   apiKeys:         {},
+  selectedModels:  {},
   sidebarPosition: 'right',
   sidebarWidth:    DEFAULT_WIDTH,
   language:        'auto'
@@ -36,11 +66,12 @@ let currentSettings = {
 
 async function loadSettings() {
   const stored = await chrome.storage.sync.get([
-    'activeProvider', 'apiKeys', 'sidebarPosition', 'sidebarWidth', 'language'
+    'activeProvider', 'apiKeys', 'selectedModels', 'sidebarPosition', 'sidebarWidth', 'language'
   ]);
   currentSettings = {
     activeProvider:  stored.activeProvider  || '',
     apiKeys:         stored.apiKeys         || {},
+    selectedModels:  stored.selectedModels  || {},
     sidebarPosition: stored.sidebarPosition || 'right',
     sidebarWidth:    stored.sidebarWidth    || DEFAULT_WIDTH,
     language:        stored.language        || 'auto'
@@ -54,6 +85,13 @@ async function loadSettings() {
 
 // ── Provider grid ─────────────────────────────────────────────────────────
 
+function getSelectedModelLabel(providerId) {
+  const models  = MODELS[providerId];
+  if (!models) return null;
+  const modelId = currentSettings.selectedModels[providerId] || models[0]?.id;
+  return models.find(m => m.id === modelId)?.label || modelId;
+}
+
 function renderProviderGrid() {
   const grid = document.getElementById('provider-grid');
   grid.innerHTML = '';
@@ -61,9 +99,10 @@ function renderProviderGrid() {
     const card = document.createElement('div');
     card.className = 'provider-card' + (currentSettings.activeProvider === p.id ? ' selected' : '');
     card.dataset.id = p.id;
+    const modelLabel = getSelectedModelLabel(p.id) || p.model;
     card.innerHTML = `
       <div class="provider-card-name">${p.label}</div>
-      <div class="provider-card-model">${p.model}</div>
+      <div class="provider-card-model">${modelLabel}</div>
       <div class="provider-card-badge ${p.free ? 'badge-free' : 'badge-paid'}">${p.free ? 'Free tier' : 'Paid'}</div>
     `;
     card.addEventListener('click', () => selectProvider(p.id));
@@ -86,7 +125,25 @@ function renderApiKeyList() {
     row.className  = 'api-key-row';
     const inputId  = `key-${p.id}`;
     const resultId = `result-${p.id}`;
+    const modelId  = `model-${p.id}`;
     const isOllama = p.id === 'ollama';
+    const models   = MODELS[p.id];
+
+    // Build model selector HTML if this provider has selectable models
+    let modelRowHtml = '';
+    if (models) {
+      const selectedModel = currentSettings.selectedModels[p.id] || models[0]?.id;
+      const options = models.map(m =>
+        `<option value="${m.id}"${m.id === selectedModel ? ' selected' : ''}>${m.label}</option>`
+      ).join('');
+      modelRowHtml = `
+        <div class="model-select-row">
+          <label class="model-select-label" for="${modelId}">Model</label>
+          <select id="${modelId}" class="model-select">${options}</select>
+        </div>
+      `;
+    }
+
     row.innerHTML = `
       <label class="api-key-label" for="${inputId}">
         ${p.label}${isOllama ? '<span class="api-key-sublabel"> — Server URL</span>' : ''}
@@ -97,6 +154,7 @@ function renderApiKeyList() {
                value="${currentSettings.apiKeys[p.id] || ''}" autocomplete="off">
         <button class="validate-btn" data-provider="${p.id}">${isOllama ? 'Test' : 'Validate'}</button>
       </div>
+      ${modelRowHtml}
       <div class="validate-result" id="${resultId}"></div>
     `;
     list.appendChild(row);
@@ -104,6 +162,15 @@ function renderApiKeyList() {
 
   list.querySelectorAll('.validate-btn').forEach(btn => {
     btn.addEventListener('click', () => validateKey(btn.dataset.provider));
+  });
+
+  // Update provider grid model label when dropdown changes
+  list.querySelectorAll('.model-select').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const providerId = sel.id.replace('model-', '');
+      currentSettings.selectedModels[providerId] = sel.value;
+      renderProviderGrid();
+    });
   });
 }
 
@@ -113,7 +180,6 @@ async function validateKey(providerId) {
   const key    = input.value.trim();
   if (!key) { showResult(result, 'fail', 'Enter a key first'); return; }
 
-  // Warn if key format looks unusual (non-blocking)
   const pattern = KEY_PATTERNS[providerId];
   if (pattern && !pattern.test(key)) {
     result.textContent = '⚠ Key format looks unusual, validating anyway…';
@@ -151,15 +217,21 @@ function showResult(el, cls, msg) {
 // ── Save ──────────────────────────────────────────────────────────────────
 
 document.getElementById('save-btn').addEventListener('click', async () => {
-  const apiKeys = {};
+  const apiKeys       = {};
+  const selectedModels = {};
+
   for (const p of PROVIDERS) {
     const val = document.getElementById(`key-${p.id}`)?.value.trim();
     if (val) apiKeys[p.id] = val;
+
+    const modelEl = document.getElementById(`model-${p.id}`);
+    if (modelEl) selectedModels[p.id] = modelEl.value;
   }
 
   const settings = {
     activeProvider:  currentSettings.activeProvider,
     apiKeys,
+    selectedModels,
     sidebarPosition: document.getElementById('sidebar-position').value,
     sidebarWidth:    parseInt(document.getElementById('sidebar-width').value, 10) || DEFAULT_WIDTH,
     language:        document.getElementById('response-language').value

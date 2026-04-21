@@ -6,15 +6,16 @@ const ProviderFactory = {
   /**
    * @param {string} name - provider key from storage (e.g. 'claude')
    * @param {Object} apiKeys - map of provider → key from chrome.storage
+   * @param {Object} [selectedModels={}] - map of provider → model id from chrome.storage
    * @returns {BaseProvider}
    */
-  get(name, apiKeys = {}) {
+  get(name, apiKeys = {}, selectedModels = {}) {
     switch (name) {
-      case 'claude':  return new ClaudeProvider(apiKeys.claude);
-      case 'gemini':  return new GeminiProvider(apiKeys.gemini);
-      case 'openai':  return new OpenAIProvider(apiKeys.openai);
-      case 'grok':    return new GrokProvider(apiKeys.grok);
-      case 'groq':    return new GroqProvider(apiKeys.groq);
+      case 'claude':  return new ClaudeProvider(apiKeys.claude,  selectedModels.claude);
+      case 'gemini':  return new GeminiProvider(apiKeys.gemini,  selectedModels.gemini);
+      case 'openai':  return new OpenAIProvider(apiKeys.openai,  'https://api.openai.com/v1', selectedModels.openai);
+      case 'grok':    return new GrokProvider(apiKeys.grok,      selectedModels.grok);
+      case 'groq':    return new GroqProvider(apiKeys.groq,      selectedModels.groq);
       case 'ollama':  return new OllamaProvider(apiKeys.ollama);
       default: throw new Error(`Unknown provider: "${name}". Check Settings.`);
     }

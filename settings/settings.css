@@ -200,6 +200,33 @@ body {
   color: var(--accent);
 }
 
+.model-select-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.model-select-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 38px;
+}
+
+.model-select {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.model-select:focus { outline: none; border-color: var(--accent); }
+
 .validate-result {
   font-size: 12px;
   height: 16px;

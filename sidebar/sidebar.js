@@ -60,9 +60,10 @@ async function init() {
 
 async function loadSettings() {
   settings = await chrome.storage.sync.get([
-    'activeProvider', 'apiKeys', 'language'
+    'activeProvider', 'apiKeys', 'language', 'selectedModels'
   ]);
-  settings.apiKeys = settings.apiKeys || {};
+  settings.apiKeys        = settings.apiKeys        || {};
+  settings.selectedModels = settings.selectedModels || {};
   updateProviderBadge();
 
   if (!settings.activeProvider || !settings.apiKeys[settings.activeProvider]) {
@@ -73,7 +74,7 @@ async function loadSettings() {
   }
 
   try {
-    provider = ProviderFactory.get(settings.activeProvider, settings.apiKeys);
+    provider = ProviderFactory.get(settings.activeProvider, settings.apiKeys, settings.selectedModels);
     hideOnboarding();
   } catch (e) {
     showOnboarding();
