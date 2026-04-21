@@ -127,6 +127,17 @@
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === 'TOGGLE_SIDEBAR') toggleSidebar();
     if (msg.type === 'OPEN_SIDEBAR')   openSidebar();
+
+    if (msg.type === 'CONTEXT_MENU_ACTION') {
+      if (msg.text) selectedText = msg.text;
+      const wasOpen = sidebarOpen;
+      openSidebar();
+      // If sidebar was already open, trigger immediately; otherwise wait for iframe load
+      setTimeout(() => {
+        if (msg.text) sendSelectedText();
+        notifyFrame({ type: 'TRIGGER_ACTION', action: msg.action });
+      }, wasOpen ? 0 : 400);
+    }
   });
 
   // ── Message relay: sidebar iframe → page ──────────────────────────────────

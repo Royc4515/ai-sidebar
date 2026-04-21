@@ -3,7 +3,7 @@
   "name": "AI Sidebar",
   "version": "1.0.0",
   "description": "Universal AI assistant sidebar — Explain, Summarize, Ask, Reply, Extract on any page",
-  "permissions": ["storage", "activeTab", "scripting", "tabs"],
+  "permissions": ["storage", "activeTab", "scripting", "tabs", "contextMenus"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background/service-worker.js"
@@ -29,6 +29,9 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'"
   },
   "options_page": "settings/settings.html",
   "commands": {

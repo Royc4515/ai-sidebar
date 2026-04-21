@@ -10,10 +10,10 @@
  * Treat your Gemini API key as sensitive and rotate it if exposed.
  */
 class GeminiProvider extends BaseProvider {
-  constructor(apiKey) {
+  constructor(apiKey, model) {
     super();
     this.apiKey  = apiKey;
-    this.model   = 'gemini-2.0-flash';
+    this.model   = model || 'gemini-2.0-flash';
     this.baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models';
   }
 

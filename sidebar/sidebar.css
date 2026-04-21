@@ -15,6 +15,20 @@
   --radius: 10px;
 }
 
+html[data-theme="light"] {
+  --bg: #f4f4fb;
+  --surface: #ffffff;
+  --surface2: #ededf8;
+  --surface3: #e0e0f0;
+  --border: rgba(0, 0, 0, 0.09);
+  --accent: #5b4fd0;
+  --accent-hover: #7c6af7;
+  --text: #1a1a2e;
+  --text-muted: #55556a;
+  --success: #3a8f64;
+  --error: #cc3333;
+}
+
 html, body {
   height: 100%;
   overflow: hidden;

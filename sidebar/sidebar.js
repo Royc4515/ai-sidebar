@@ -58,11 +58,30 @@ async function init() {
   loadResponseHistory();
 }
 
+function applyTheme(theme) {
+  const resolved = theme === 'auto'
+    ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+    : (theme || 'dark');
+  document.documentElement.dataset.theme = resolved;
+}
+
 async function loadSettings() {
   settings = await chrome.storage.sync.get([
-    'activeProvider', 'apiKeys', 'language'
+    'activeProvider', 'apiKeys', 'language', 'selectedModels', 'theme', 'customPrompts'
   ]);
-  settings.apiKeys = settings.apiKeys || {};
+  settings.apiKeys        = settings.apiKeys        || {};
+  settings.selectedModels = settings.selectedModels || {};
+  settings.customPrompts  = settings.customPrompts  || {};
+
+  applyTheme(settings.theme || 'dark');
+
+  // Merge any custom prompt templates over the defaults
+  const cp = settings.customPrompts;
+  if (cp.explain)   ACTIONS.explain   = (text) => cp.explain.replace('{{text}}', text);
+  if (cp.summarize) ACTIONS.summarize = (page) => cp.summarize.replace('{{page}}', page);
+  if (cp.reply)     ACTIONS.reply     = (text) => cp.reply.replace('{{text}}', text);
+  if (cp.extract)   ACTIONS.extract   = (page) => cp.extract.replace('{{page}}', page);
+
   updateProviderBadge();
 
   if (!settings.activeProvider || !settings.apiKeys[settings.activeProvider]) {
@@ -73,12 +92,16 @@ async function loadSettings() {
   }
 
   try {
-    provider = ProviderFactory.get(settings.activeProvider, settings.apiKeys);
+    provider = ProviderFactory.get(settings.activeProvider, settings.apiKeys, settings.selectedModels);
     hideOnboarding();
   } catch (e) {
     showOnboarding();
   }
 }
+
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.theme) applyTheme(changes.theme.newValue);
+});
 
 function updateProviderBadge() {
   const badge = document.getElementById('provider-badge');
@@ -151,6 +174,8 @@ function requestPageContent() {
 }
 
 window.addEventListener('message', (event) => {
+  // Only accept messages from the parent frame (content.js)
+  if (event.source !== window.parent) return;
   const msg = event.data;
   if (!msg || typeof msg !== 'object') return;
 
@@ -166,6 +191,11 @@ window.addEventListener('message', (event) => {
   if (msg.type === 'SIDEBAR_OPENED') {
     requestPageContent();
     window.parent.postMessage({ type: 'REQUEST_SELECTED_TEXT' }, '*');
+  }
+
+  if (msg.type === 'TRIGGER_ACTION') {
+    // Small delay lets PAGE_CONTENT and SELECTED_TEXT arrive first
+    setTimeout(() => handleAction(msg.action), 50);
   }
 });
 
@@ -682,7 +712,7 @@ function renderTables(text) {
         if (isAlignRow(row)) { html += '</thead><tbody>'; inHead = false; continue; }
         const cells = row.split('|').filter((_, i, a) => i > 0 && i < a.length - 1);
         const tag   = inHead ? 'th' : 'td';
-        html += '<tr>' + cells.map(c => `<${tag}>${c.trim()}</${tag}>`).join('') + '</tr>';
+        html += '<tr>' + cells.map(c => `<${tag}>${sanitizeText(c.trim())}</${tag}>`).join('') + '</tr>';
       }
       html += (inHead ? '' : '</tbody>') + '</table>';
       return html;

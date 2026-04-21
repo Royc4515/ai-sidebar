@@ -3,8 +3,8 @@
  * Docs: https://docs.x.ai/api
  */
 class GrokProvider extends OpenAIProvider {
-  constructor(apiKey) {
-    super(apiKey, 'https://api.x.ai/v1', 'grok-3-mini');
+  constructor(apiKey, model) {
+    super(apiKey, 'https://api.x.ai/v1', model || 'grok-3-mini');
   }
 
   getName() { return 'Grok'; }
