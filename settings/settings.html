@@ -37,6 +37,14 @@
     <section class="settings-section">
       <h2>Appearance</h2>
       <div class="settings-row">
+        <label for="sidebar-theme">Theme</label>
+        <select id="sidebar-theme">
+          <option value="dark">Dark (default)</option>
+          <option value="light">Light</option>
+          <option value="auto">Auto (system)</option>
+        </select>
+      </div>
+      <div class="settings-row">
         <label for="sidebar-position">Sidebar position</label>
         <select id="sidebar-position">
           <option value="right">Right</option>
@@ -66,6 +74,16 @@
           <option value="ja">Japanese</option>
         </select>
       </div>
+    </section>
+
+    <!-- Action Templates -->
+    <section class="settings-section">
+      <h2>Action Templates <span class="section-hint-inline">(advanced)</span></h2>
+      <p class="section-hint">
+        Customize what each action asks the AI. Use <code>{{text}}</code> for selected text
+        and <code>{{page}}</code> for page content. Leave blank to use the default.
+      </p>
+      <div id="prompt-list"><!-- Rendered by JS --></div>
     </section>
 
     <!-- Save -->

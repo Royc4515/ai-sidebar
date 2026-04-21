@@ -69,3 +69,26 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true; // keep channel open for async response
   }
 });
+
+// ── Context menu ────────────────────────────────────────────────────────────
+
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({ id: 'ai-explain',   title: '✨ Explain with AI',  contexts: ['selection'] });
+    chrome.contextMenus.create({ id: 'ai-reply',     title: '💬 Suggest reply',    contexts: ['selection'] });
+    chrome.contextMenus.create({ id: 'ai-summarize', title: '📄 Summarize page',   contexts: ['page', 'selection'] });
+  });
+});
+
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (!tab?.id) return;
+  const action = info.menuItemId.replace('ai-', '');
+  const text   = info.selectionText || '';
+  try {
+    await chrome.tabs.sendMessage(tab.id, { type: 'CONTEXT_MENU_ACTION', action, text });
+  } catch (_) {
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content/content.js'] })
+      .catch(console.error);
+    chrome.tabs.sendMessage(tab.id, { type: 'CONTEXT_MENU_ACTION', action, text }).catch(console.error);
+  }
+});

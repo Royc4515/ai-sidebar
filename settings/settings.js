@@ -14,7 +14,6 @@ const PROVIDERS = [
   { id: 'ollama',  label: 'Ollama (local)',  model: 'local model',           placeholder: 'http://localhost:11434',  free: true  }
 ];
 
-// Available models per provider (ollama excluded — user configures their own)
 const MODELS = {
   claude: [
     { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5 — fastest, cheapest' },
@@ -43,7 +42,6 @@ const MODELS = {
   ],
 };
 
-// Expected key format patterns — used to warn (not block) on unusual input
 const KEY_PATTERNS = {
   claude: /^sk-ant-/,
   openai: /^sk-/,
@@ -53,31 +51,64 @@ const KEY_PATTERNS = {
   ollama: /^https?:\/\//
 };
 
+// Default prompt templates — must match sidebar.js ACTIONS defaults
+const DEFAULT_PROMPTS = {
+  explain:   'Explain the following clearly and concisely:\n\n"{{text}}"',
+  summarize: 'Summarize this page in concise key bullet points:\n\n{{page}}',
+  reply:     'Suggest exactly 3 short, distinct reply options to the following message. Number them 1, 2, 3:\n\n"{{text}}"',
+  extract:   'Extract all structured data from the page below as a markdown table with clear headers:\n\n{{page}}',
+};
+
+const PROMPT_LABELS = {
+  explain:   'Explain',
+  summarize: 'Summarize',
+  reply:     'Reply suggestions',
+  extract:   'Extract Data',
+};
+
 let currentSettings = {
   activeProvider:  '',
   apiKeys:         {},
   selectedModels:  {},
+  customPrompts:   {},
   sidebarPosition: 'right',
   sidebarWidth:    DEFAULT_WIDTH,
-  language:        'auto'
+  language:        'auto',
+  theme:           'dark',
 };
+
+// ── Theme ──────────────────────────────────────────────────────────────────
+
+function applyTheme(theme) {
+  const resolved = theme === 'auto'
+    ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+    : theme;
+  document.documentElement.dataset.theme = resolved;
+}
 
 // ── Load settings ──────────────────────────────────────────────────────────
 
 async function loadSettings() {
   const stored = await chrome.storage.sync.get([
-    'activeProvider', 'apiKeys', 'selectedModels', 'sidebarPosition', 'sidebarWidth', 'language'
+    'activeProvider', 'apiKeys', 'selectedModels', 'customPrompts',
+    'sidebarPosition', 'sidebarWidth', 'language', 'theme'
   ]);
   currentSettings = {
     activeProvider:  stored.activeProvider  || '',
     apiKeys:         stored.apiKeys         || {},
     selectedModels:  stored.selectedModels  || {},
+    customPrompts:   stored.customPrompts   || {},
     sidebarPosition: stored.sidebarPosition || 'right',
     sidebarWidth:    stored.sidebarWidth    || DEFAULT_WIDTH,
-    language:        stored.language        || 'auto'
+    language:        stored.language        || 'auto',
+    theme:           stored.theme           || 'dark',
   };
+
+  applyTheme(currentSettings.theme);
   renderProviderGrid();
   renderApiKeyList();
+  renderPromptList();
+  document.getElementById('sidebar-theme').value     = currentSettings.theme;
   document.getElementById('sidebar-position').value  = currentSettings.sidebarPosition;
   document.getElementById('sidebar-width').value     = currentSettings.sidebarWidth;
   document.getElementById('response-language').value = currentSettings.language;
@@ -129,7 +160,6 @@ function renderApiKeyList() {
     const isOllama = p.id === 'ollama';
     const models   = MODELS[p.id];
 
-    // Build model selector HTML if this provider has selectable models
     let modelRowHtml = '';
     if (models) {
       const selectedModel = currentSettings.selectedModels[p.id] || models[0]?.id;
@@ -164,7 +194,6 @@ function renderApiKeyList() {
     btn.addEventListener('click', () => validateKey(btn.dataset.provider));
   });
 
-  // Update provider grid model label when dropdown changes
   list.querySelectorAll('.model-select').forEach(sel => {
     sel.addEventListener('change', () => {
       const providerId = sel.id.replace('model-', '');
@@ -198,8 +227,7 @@ async function validateKey(providerId) {
     if (valid?.ok) {
       showResult(result, 'ok', '✓ Valid');
     } else {
-      const errMsg = valid?.error || 'Invalid or unreachable';
-      showResult(result, 'fail', `✗ ${errMsg}`);
+      showResult(result, 'fail', `✗ ${valid?.error || 'Invalid or unreachable'}`);
     }
   } catch (_) {
     showResult(result, 'ok', '✓ Saved (not verified)');
@@ -209,16 +237,41 @@ async function validateKey(providerId) {
 function showResult(el, cls, msg) {
   el.textContent = msg;
   el.className   = `validate-result ${cls}`;
-  setTimeout(() => {
-    if (el.textContent === msg) el.textContent = '';
-  }, 5000);
+  setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 5000);
+}
+
+// ── Prompt templates ──────────────────────────────────────────────────────
+
+function renderPromptList() {
+  const list = document.getElementById('prompt-list');
+  list.innerHTML = '';
+  for (const [key, defaultVal] of Object.entries(DEFAULT_PROMPTS)) {
+    const current = currentSettings.customPrompts?.[key] || '';
+    const div = document.createElement('div');
+    div.className = 'prompt-row';
+    div.innerHTML = `
+      <div class="prompt-row-header">
+        <label class="prompt-label" for="prompt-${key}">${PROMPT_LABELS[key]}</label>
+        <button class="prompt-reset-btn" data-key="${key}">Reset to default</button>
+      </div>
+      <textarea id="prompt-${key}" class="prompt-textarea" rows="3"
+                placeholder="${defaultVal.replace(/"/g, '&quot;')}">${current}</textarea>
+    `;
+    list.appendChild(div);
+  }
+  list.querySelectorAll('.prompt-reset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById(`prompt-${btn.dataset.key}`).value = '';
+    });
+  });
 }
 
 // ── Save ──────────────────────────────────────────────────────────────────
 
 document.getElementById('save-btn').addEventListener('click', async () => {
-  const apiKeys       = {};
+  const apiKeys        = {};
   const selectedModels = {};
+  const customPrompts  = {};
 
   for (const p of PROVIDERS) {
     const val = document.getElementById(`key-${p.id}`)?.value.trim();
@@ -228,14 +281,24 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     if (modelEl) selectedModels[p.id] = modelEl.value;
   }
 
+  for (const key of Object.keys(DEFAULT_PROMPTS)) {
+    const val = document.getElementById(`prompt-${key}`)?.value.trim();
+    if (val) customPrompts[key] = val;
+  }
+
   const settings = {
     activeProvider:  currentSettings.activeProvider,
     apiKeys,
     selectedModels,
+    customPrompts,
+    theme:           document.getElementById('sidebar-theme').value,
     sidebarPosition: document.getElementById('sidebar-position').value,
     sidebarWidth:    parseInt(document.getElementById('sidebar-width').value, 10) || DEFAULT_WIDTH,
     language:        document.getElementById('response-language').value
   };
+
+  // Apply theme immediately on the settings page
+  applyTheme(settings.theme);
 
   const status = document.getElementById('save-status');
   try {

@@ -58,12 +58,30 @@ async function init() {
   loadResponseHistory();
 }
 
+function applyTheme(theme) {
+  const resolved = theme === 'auto'
+    ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+    : (theme || 'dark');
+  document.documentElement.dataset.theme = resolved;
+}
+
 async function loadSettings() {
   settings = await chrome.storage.sync.get([
-    'activeProvider', 'apiKeys', 'language', 'selectedModels'
+    'activeProvider', 'apiKeys', 'language', 'selectedModels', 'theme', 'customPrompts'
   ]);
   settings.apiKeys        = settings.apiKeys        || {};
   settings.selectedModels = settings.selectedModels || {};
+  settings.customPrompts  = settings.customPrompts  || {};
+
+  applyTheme(settings.theme || 'dark');
+
+  // Merge any custom prompt templates over the defaults
+  const cp = settings.customPrompts;
+  if (cp.explain)   ACTIONS.explain   = (text) => cp.explain.replace('{{text}}', text);
+  if (cp.summarize) ACTIONS.summarize = (page) => cp.summarize.replace('{{page}}', page);
+  if (cp.reply)     ACTIONS.reply     = (text) => cp.reply.replace('{{text}}', text);
+  if (cp.extract)   ACTIONS.extract   = (page) => cp.extract.replace('{{page}}', page);
+
   updateProviderBadge();
 
   if (!settings.activeProvider || !settings.apiKeys[settings.activeProvider]) {
@@ -80,6 +98,10 @@ async function loadSettings() {
     showOnboarding();
   }
 }
+
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.theme) applyTheme(changes.theme.newValue);
+});
 
 function updateProviderBadge() {
   const badge = document.getElementById('provider-badge');
@@ -167,6 +189,11 @@ window.addEventListener('message', (event) => {
   if (msg.type === 'SIDEBAR_OPENED') {
     requestPageContent();
     window.parent.postMessage({ type: 'REQUEST_SELECTED_TEXT' }, '*');
+  }
+
+  if (msg.type === 'TRIGGER_ACTION') {
+    // Small delay lets PAGE_CONTENT and SELECTED_TEXT arrive first
+    setTimeout(() => handleAction(msg.action), 50);
   }
 });
 
