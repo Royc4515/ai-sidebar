@@ -1,11 +1,22 @@
-/**
- * GroqProvider — Groq Cloud API (OpenAI-compatible, very fast inference).
- * Docs: https://console.groq.com/docs/api-reference
- */
-class GroqProvider extends OpenAIProvider {
-  constructor(apiKey, model) {
-    super(apiKey, 'https://api.groq.com/openai/v1', model || 'llama-3.3-70b-versatile');
+class GroqProvider extends BaseProvider {
+  async complete(prompt, pageContext = '') {
+    const { system, user } = this.buildMessages(prompt, pageContext);
+    const data = await this._fetchJson('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 2048,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user }
+        ]
+      })
+    });
+    return data.choices?.[0]?.message?.content || '';
   }
-
-  getName() { return 'Groq'; }
 }
+self.GroqProvider = GroqProvider;

@@ -4,139 +4,174 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Sidebar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="sidebar.css">
+  <script src="../_preview/chrome-shim.js"></script>
 </head>
 <body>
   <div id="sidebar-root">
 
     <!-- Header -->
-    <header class="sidebar-header">
-      <div class="sidebar-brand">
-        <span class="sidebar-logo">✨</span>
-        <span class="sidebar-title">AI Sidebar</span>
+    <header class="sb-header">
+      <div class="sb-brand">
+        <svg class="sb-brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="bm-g" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="var(--accent)"/>
+              <stop offset="1" stop-color="var(--accent-2)"/>
+            </linearGradient>
+          </defs>
+          <path d="M16 3c2 5 5.5 8.5 10.5 10.5C21.5 15.5 18 19 16 24 14 19 10.5 15.5 5.5 13.5 10.5 11.5 14 8 16 3z" fill="url(#bm-g)"/>
+          <circle cx="16" cy="27" r="1.7" fill="var(--accent)"/>
+        </svg>
+        <span class="sb-brand-name">Aside</span>
       </div>
-      <div class="sidebar-header-right">
-        <span class="provider-badge" id="provider-badge">—</span>
-        <button class="icon-btn" id="settings-btn" title="Settings">⚙</button>
-        <button class="icon-btn" id="close-btn" title="Close (Alt+A)">✕</button>
+      <div class="sb-header-right">
+        <button class="sb-model" id="model-btn" aria-haspopup="listbox" aria-expanded="false">
+          <span class="dot" id="model-dot"></span>
+          <span class="sb-model-name" id="model-name">—</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <button class="sb-icon-btn" id="settings-btn" title="Settings" aria-label="Settings">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.7l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.7-.3 1.6 1.6 0 0 0-1 1.4V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.4 1.6 1.6 0 0 0-1.7.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.7 1.6 1.6 0 0 0-1.4-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.4-1 1.6 1.6 0 0 0-.3-1.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.7.3H9a1.6 1.6 0 0 0 1-1.4V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.4 1.6 1.6 0 0 0 1.7-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.7V9a1.6 1.6 0 0 0 1.4 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.4 1z"/></svg>
+        </button>
+        <button class="sb-icon-btn" id="close-btn" title="Close (Alt+A)" aria-label="Close">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
       </div>
     </header>
 
-    <!-- Onboarding (shown when no provider is configured) -->
-    <div class="onboarding" id="onboarding" style="display:none">
-      <div class="onboarding-icon">🔑</div>
-      <h3>Set up your AI provider</h3>
-      <p>Open Settings to choose a provider (Claude, Gemini, Groq, etc.) and add your API key.</p>
-      <button class="primary-btn" id="onboarding-settings-btn">Open Settings</button>
+    <!-- Onboarding -->
+    <div class="sb-onboarding" id="onboarding" style="display:none">
+      <svg width="40" height="40" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="ob-g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="var(--accent)"/>
+            <stop offset="1" stop-color="var(--accent-2)"/>
+          </linearGradient>
+        </defs>
+        <path d="M16 3c2 5 5.5 8.5 10.5 10.5C21.5 15.5 18 19 16 24 14 19 10.5 15.5 5.5 13.5 10.5 11.5 14 8 16 3z" fill="url(#ob-g)"/>
+        <circle cx="16" cy="27" r="1.7" fill="var(--accent)"/>
+      </svg>
+      <h3 data-i18n="onboarding-title">Set up your AI</h3>
+      <p data-i18n="onboarding-sub">Pick a provider (Claude, Gemini, Groq, etc.) and add your API key. Keys stay on your device.</p>
+      <button class="sb-primary-btn" id="onboarding-settings-btn" data-i18n="onboarding-cta">Open Settings</button>
     </div>
 
-    <!-- Main content (hidden during onboarding) -->
-    <div id="main-content">
+    <!-- Tabs -->
+    <div class="sb-tabs" id="tabs" style="display:none">
+      <button class="sb-tab is-active" data-tab="chat">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8"/></svg>
+        <span data-i18n="tab-chat">Chat</span>
+      </button>
+      <button class="sb-tab" data-tab="tools">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5M3 18l9 5 9-5"/></svg>
+        <span data-i18n="tab-tools">Tools</span>
+      </button>
+    </div>
 
-      <!-- Page-level actions -->
-      <div class="action-section">
-        <div class="action-section-label">Page actions</div>
-        <div class="action-row">
-          <button class="action-btn" data-action="summarize">
-            <span class="action-icon">📄</span>
-            <span>Summarize</span>
-          </button>
-          <button class="action-btn" data-action="extract">
-            <span class="action-icon">📊</span>
-            <span>Extract Data</span>
-          </button>
+    <!-- Body -->
+    <div class="sb-body" id="main-content" style="display:none">
+
+      <!-- Chat tab content -->
+      <div class="sb-scroll" id="tab-chat">
+        <!-- Hero (empty state) -->
+        <div class="sb-hero" id="hero">
+          <div class="sb-hero-mark">
+            <svg width="36" height="36" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+              <path d="M16 3c2 5 5.5 8.5 10.5 10.5C21.5 15.5 18 19 16 24 14 19 10.5 15.5 5.5 13.5 10.5 11.5 14 8 16 3z" fill="url(#bm-g)"/>
+              <circle cx="16" cy="27" r="1.7" fill="var(--accent)"/>
+            </svg>
+          </div>
+          <h1 class="sb-hero-title" data-i18n="hero-title">How can I help with this page?</h1>
+          <p class="sb-hero-sub" data-i18n="hero-sub">Summarize, extract, translate, or ask anything. Page context is included automatically.</p>
+          <div class="sb-suggest" id="hero-suggest">
+            <!-- populated by JS -->
+          </div>
+        </div>
+
+        <!-- Selection block (shown when text selected) -->
+        <div id="selection-wrap" style="display:none">
+          <div class="sb-section">
+            <div class="sb-section-head">
+              <span class="sb-section-label" data-i18n="selected-label">Selected text</span>
+            </div>
+          </div>
+          <div class="sb-selection">
+            <div class="sb-selection-head">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h4v4c0 3-2 5-4 6M14 7h4v4c0 3-2 5-4 6"/></svg>
+              <span data-i18n="from-page">From page</span>
+            </div>
+            <div class="sb-selection-text" id="selected-preview"></div>
+          </div>
+        </div>
+
+        <!-- Turns rendered here -->
+        <div id="turns"></div>
+
+        <!-- Error -->
+        <div class="sb-error" id="error-state" style="display:none">
+          <div class="sb-error-title" data-i18n="error-title">Something went wrong</div>
+          <div id="error-message"></div>
+          <div class="sb-error-actions">
+            <button class="sb-chip" id="retry-btn" data-i18n="retry">Try again</button>
+          </div>
         </div>
       </div>
 
-      <!-- Ask input -->
-      <div class="ask-section">
-        <div class="action-section-label">Ask a question</div>
-        <div class="ask-row">
+      <!-- Tools tab content -->
+      <div class="sb-scroll" id="tab-tools" style="display:none">
+        <div class="sb-section">
+          <div class="sb-section-head">
+            <span class="sb-section-label" data-i18n="tools-page">Page actions</span>
+          </div>
+          <div class="sb-chip-grid" id="page-actions"></div>
+        </div>
+        <div class="sb-section">
+          <div class="sb-section-head">
+            <span class="sb-section-label" data-i18n="tools-selection">Selection actions</span>
+          </div>
+          <div class="sb-chip-grid" id="selection-actions"></div>
+        </div>
+      </div>
+
+      <!-- Command bar -->
+      <div class="sb-cmdbar" id="cmdbar"></div>
+
+      <!-- Composer -->
+      <div class="sb-composer">
+        <div class="sb-composer-inner">
           <textarea
             id="ask-input"
-            class="ask-input"
+            class="sb-composer-input"
+            data-i18n-placeholder="composer-placeholder"
             placeholder="Ask anything about this page…"
             rows="2"
           ></textarea>
-          <button class="ask-send-btn" id="ask-btn" title="Ask (Enter)">→</button>
-        </div>
-      </div>
-
-      <!-- Selection-based actions (shown when text is selected) -->
-      <div class="selection-section" id="selection-section" style="display:none">
-        <div class="action-section-label">Selection actions</div>
-        <div class="selected-preview-box">
-          <div class="selected-preview-label">Selected text</div>
-          <div class="selected-preview" id="selected-preview"></div>
-        </div>
-        <div class="action-row">
-          <button class="action-btn" data-action="explain">
-            <span class="action-icon">💡</span>
-            <span>Explain</span>
-          </button>
-          <button class="action-btn" data-action="reply">
-            <span class="action-icon">💬</span>
-            <span>Reply</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Conversation history (shown when there are ask turns) -->
-      <div class="conversation-section" id="conversation-section" style="display:none">
-        <div class="conversation-header">
-          <span class="action-section-label" style="margin-bottom:0">Conversation</span>
-          <button class="new-chat-btn" id="new-chat-btn" title="Start new conversation">+ New</button>
-        </div>
-        <div class="conversation-history" id="conversation-history"></div>
-      </div>
-
-      <!-- Response area -->
-      <div class="response-area" id="response-area">
-        <!-- Placeholder -->
-        <div class="response-placeholder" id="response-placeholder">
-          <span class="placeholder-icon">✨</span>
-          <span>Pick an action above to get started</span>
-        </div>
-
-        <!-- Loading -->
-        <div class="loading-state" id="loading-state" style="display:none">
-          <div class="loading-dots">
-            <span></span><span></span><span></span>
+          <div class="sb-composer-toolbar">
+            <div class="sb-composer-tools">
+              <span class="sb-composer-model">
+                <span class="dot" id="composer-dot"></span>
+                <span id="composer-model-name">—</span>
+              </span>
+            </div>
+            <button class="sb-send" id="ask-btn" title="Send (Enter)" aria-label="Send">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+            </button>
           </div>
-          <div class="loading-text" id="loading-text">Thinking…</div>
         </div>
-
-        <!-- Response content -->
-        <div class="response-content" id="response-content" style="display:none">
-          <div class="response-header">
-            <span class="response-action-label" id="response-action-label"></span>
-            <button class="copy-btn" id="copy-btn" title="Copy to clipboard">Copy</button>
-          </div>
-          <div class="response-body" id="response-body"></div>
-        </div>
-
-        <!-- Error -->
-        <div class="error-state" id="error-state" style="display:none">
-          <div class="error-icon">⚠️</div>
-          <div class="error-message" id="error-message"></div>
-          <button class="retry-btn" id="retry-btn">Try again</button>
-        </div>
+        <div class="sb-foot-note" data-i18n="foot-note">Aside can make mistakes. Check important info.</div>
       </div>
 
-      <!-- Past responses history panel -->
-      <div class="history-panel" id="history-panel" style="display:none">
-        <button class="history-toggle" id="history-toggle">
-          <span>Past responses</span>
-          <span class="history-count" id="history-count">0</span>
-          <span class="history-arrow" id="history-arrow">▾</span>
-        </button>
-        <div class="history-list" id="history-list" style="display:none"></div>
-      </div>
+    </div>
 
-    </div><!-- /main-content -->
-  </div><!-- /sidebar-root -->
+    <!-- Provider picker (overlay) -->
+    <div id="picker-host"></div>
+  </div>
 
-  <!-- Provider scripts loaded in dependency order -->
+  <script src="i18n.js"></script>
   <script src="../providers/base-provider.js"></script>
   <script src="../providers/claude-provider.js"></script>
   <script src="../providers/gemini-provider.js"></script>

@@ -1,66 +1,33 @@
-/* ── AI Sidebar frame ─────────────────────────────────────────────────────── */
+/* Aside — host-page styles for the sidebar iframe */
 
-#ai-sidebar-frame {
+#aside-sidebar-host {
+  --aside-width: 420px;
   position: fixed;
   top: 0;
   height: 100vh;
-  width: 380px;       /* overridden by JS from settings */
+  width: var(--aside-width);
   z-index: 2147483646;
-  border: none;
+  pointer-events: none;
+  transition: transform 220ms cubic-bezier(.2,.8,.2,1);
+}
+#aside-sidebar-host[data-aside-position="right"] {
+  right: 0; transform: translateX(100%);
+  box-shadow: -8px 0 32px rgba(0,0,0,0.10);
+}
+#aside-sidebar-host[data-aside-position="left"] {
+  left: 0; transform: translateX(-100%);
+  box-shadow: 8px 0 32px rgba(0,0,0,0.10);
+}
+#aside-sidebar-host.is-visible {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+#aside-sidebar-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
   background: transparent;
-  box-shadow: -6px 0 32px rgba(0, 0, 0, 0.4);
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-  pointer-events: all;
+  color-scheme: light dark;
 }
 
-/* Right (default) */
-#ai-sidebar-frame.ai-sidebar-right {
-  right: 0;
-  transform: translateX(100%);
-  border-left: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-/* Left */
-#ai-sidebar-frame.ai-sidebar-left {
-  left: 0;
-  transform: translateX(-100%);
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-/* Open state */
-#ai-sidebar-frame.ai-sidebar-open {
-  transform: translateX(0) !important;
-}
-
-/* ── Floating selection button ───────────────────────────────────────────── */
-
-#ai-sidebar-float-btn {
-  position: absolute;
-  display: none;
-  align-items: center;
-  gap: 4px;
-  z-index: 2147483645;
-  background: linear-gradient(135deg, #7c6af7, #9589f9);
-  color: #fff;
-  border: none;
-  border-radius: 20px;
-  padding: 5px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  cursor: pointer;
-  box-shadow: 0 4px 14px rgba(124, 106, 247, 0.45);
-  transition: transform 0.12s, box-shadow 0.12s;
-  white-space: nowrap;
-  line-height: 1;
-  user-select: none;
-}
-
-#ai-sidebar-float-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(124, 106, 247, 0.55);
-}
-
-#ai-sidebar-float-btn:active {
-  transform: translateY(0);
-}
+html.aside-open { /* hook for sites to react if they want */ }

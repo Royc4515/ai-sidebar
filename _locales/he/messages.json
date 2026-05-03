@@ -1,0 +1,19 @@
+{
+  "ext_name":         { "message": "Aside — AI בסרגל הצד" },
+  "ext_description":  { "message": "סכמו, תרגמו, חלצו וצ'וטטו על כל עמוד. עם המפתחות שלכם; עובד עם Claude, Gemini, GPT, Grok, Groq ו-Ollama." },
+  "onboarding-title": { "message": "התחילו את ה-AI שלכם" },
+  "onboarding-sub":   { "message": "בחרו ספק (Claude, Gemini, Groq וכו׳) והוסיפו מפתח API. המפתחות נשמרים אצלכם." },
+  "onboarding-cta":   { "message": "פתחו הגדרות" },
+  "tab-chat":         { "message": "צ׳אט" },
+  "tab-tools":        { "message": "כלים" },
+  "hero-title":       { "message": "איך אפשר לעזור עם העמוד הזה?" },
+  "hero-sub":         { "message": "סכמו, חלצו, תרגמו, או שאלו כל דבר. תוכן העמוד נכלל אוטומטית." },
+  "selected-label":   { "message": "טקסט נבחר" },
+  "from-page":        { "message": "מהעמוד" },
+  "error-title":      { "message": "משהו השתבש" },
+  "retry":            { "message": "נסו שוב" },
+  "tools-page":       { "message": "פעולות עמוד" },
+  "tools-selection":  { "message": "פעולות על בחירה" },
+  "composer-placeholder": { "message": "שאלו כל דבר על העמוד הזה…" },
+  "foot-note":        { "message": "Aside עלול לטעות. בדקו מידע חשוב." }
+}

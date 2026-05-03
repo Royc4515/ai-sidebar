@@ -1,57 +1,74 @@
 {
   "manifest_version": 3,
-  "name": "AI Sidebar",
+  "name": "__MSG_ext_name__",
+  "short_name": "Aside",
+  "description": "__MSG_ext_description__",
   "version": "1.0.0",
-  "description": "Universal AI assistant sidebar — Explain, Summarize, Ask, Reply, Extract on any page",
-  "permissions": ["storage", "activeTab", "scripting", "tabs", "contextMenus"],
+  "default_locale": "en",
+  "minimum_chrome_version": "114",
+
+  "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": ["<all_urls>"],
+
   "background": {
-    "service_worker": "background/service-worker.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
+
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
+
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
       "js": ["content/content.js"],
       "css": ["content/content.css"],
-      "run_at": "document_idle"
+      "run_at": "document_idle",
+      "all_frames": false
     }
   ],
-  "action": {
-    "default_popup": "popup/popup.html",
-    "default_title": "AI Sidebar",
-    "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
-    }
-  },
-  "icons": {
-    "16": "icons/icon16.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
-  },
-  "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'none'"
-  },
-  "options_page": "settings/settings.html",
-  "commands": {
-    "toggle-sidebar": {
-      "suggested_key": {
-        "default": "Alt+A",
-        "mac": "Alt+A"
-      },
-      "description": "Toggle AI Sidebar"
-    }
-  },
+
   "web_accessible_resources": [
     {
       "resources": [
         "sidebar/sidebar.html",
         "sidebar/sidebar.css",
         "sidebar/sidebar.js",
-        "providers/*.js"
+        "providers/*.js",
+        "icons/*.png"
       ],
       "matches": ["<all_urls>"]
     }
-  ]
+  ],
+
+  "commands": {
+    "toggle-sidebar": {
+      "suggested_key": {
+        "default":  "Alt+A",
+        "mac":      "Alt+A",
+        "windows":  "Alt+A",
+        "linux":    "Alt+A"
+      },
+      "description": "Toggle the AI sidebar"
+    }
+  }
 }

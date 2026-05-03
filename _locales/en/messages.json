@@ -1,0 +1,19 @@
+{
+  "ext_name":         { "message": "Aside — AI in your sidebar" },
+  "ext_description":  { "message": "Summarize, translate, extract, and chat about any page. Bring your own keys; works with Claude, Gemini, GPT, Grok, Groq, and Ollama." },
+  "onboarding-title": { "message": "Set up your AI" },
+  "onboarding-sub":   { "message": "Pick a provider (Claude, Gemini, Groq, etc.) and add your API key. Keys stay on your device." },
+  "onboarding-cta":   { "message": "Open Settings" },
+  "tab-chat":         { "message": "Chat" },
+  "tab-tools":        { "message": "Tools" },
+  "hero-title":       { "message": "How can I help with this page?" },
+  "hero-sub":         { "message": "Summarize, extract, translate, or ask anything. Page context is included automatically." },
+  "selected-label":   { "message": "Selected text" },
+  "from-page":        { "message": "From page" },
+  "error-title":      { "message": "Something went wrong" },
+  "retry":            { "message": "Try again" },
+  "tools-page":       { "message": "Page actions" },
+  "tools-selection":  { "message": "Selection actions" },
+  "composer-placeholder": { "message": "Ask anything about this page…" },
+  "foot-note":        { "message": "Aside can make mistakes. Check important info." }
+}

@@ -1,11 +1,22 @@
-/**
- * GrokProvider — xAI Grok API (OpenAI-compatible).
- * Docs: https://docs.x.ai/api
- */
-class GrokProvider extends OpenAIProvider {
-  constructor(apiKey, model) {
-    super(apiKey, 'https://api.x.ai/v1', model || 'grok-3-mini');
+class GrokProvider extends BaseProvider {
+  async complete(prompt, pageContext = '') {
+    const { system, user } = this.buildMessages(prompt, pageContext);
+    const data = await this._fetchJson('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'grok-3-mini',
+        max_tokens: 2048,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user }
+        ]
+      })
+    });
+    return data.choices?.[0]?.message?.content || '';
   }
-
-  getName() { return 'Grok'; }
 }
+self.GrokProvider = GrokProvider;

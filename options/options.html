@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aside — Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="options.css">
+  <script src="../_preview/chrome-shim.js"></script>
+</head>
+<body>
+  <div class="set-shell" id="root">
+    <aside class="set-side">
+      <div class="set-brand">
+        <svg width="22" height="22" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 3c2 5 5.5 8.5 10.5 10.5C21.5 15.5 18 19 16 24 14 19 10.5 15.5 5.5 13.5 10.5 11.5 14 8 16 3z" fill="var(--accent)"/>
+          <circle cx="16" cy="27" r="1.7" fill="var(--accent)"/>
+        </svg>
+        <span class="set-brand-name">Aside</span>
+      </div>
+      <nav class="set-nav" id="nav"></nav>
+      <div class="set-side-foot">
+        <div class="set-side-version">v1.0.0</div>
+      </div>
+    </aside>
+
+    <main class="set-main">
+      <header class="set-header">
+        <div>
+          <h1 class="set-h1" id="page-title">Provider</h1>
+          <p class="set-sub" id="page-sub">Choose a model and add API keys. Keys are stored locally in your browser.</p>
+        </div>
+        <div class="set-header-right">
+          <span class="set-saved" id="saved-indicator" style="display:none">Saved</span>
+          <button class="set-save" id="save-btn">Save changes</button>
+        </div>
+      </header>
+
+      <!-- Provider page -->
+      <div class="set-page" data-page="provider">
+        <section class="set-section">
+          <h2 class="set-h2">Active model</h2>
+          <div class="set-providers" id="providers"></div>
+        </section>
+
+        <section class="set-section">
+          <h2 class="set-h2">API keys</h2>
+          <div class="set-keys" id="keys"></div>
+          <p class="set-hint">Keys never leave your browser. Each provider stores its key under <code>chrome.storage.sync</code>.</p>
+        </section>
+      </div>
+
+      <!-- Appearance page -->
+      <div class="set-page" data-page="appearance" hidden>
+        <section class="set-section">
+          <h2 class="set-h2">Layout</h2>
+          <div class="set-row">
+            <label>Sidebar position</label>
+            <div class="set-segments" data-setting="position">
+              <button class="set-seg" data-value="right">Right</button>
+              <button class="set-seg" data-value="left">Left</button>
+            </div>
+          </div>
+          <div class="set-row">
+            <label>Sidebar width</label>
+            <div class="set-slider">
+              <input type="range" min="320" max="640" step="10" id="width-slider"/>
+              <span class="set-slider-val" id="width-val">420px</span>
+            </div>
+          </div>
+        </section>
+        <section class="set-section">
+          <h2 class="set-h2">Theme</h2>
+          <div class="set-row">
+            <label>Color theme</label>
+            <div class="set-segments" data-setting="theme">
+              <button class="set-seg" data-value="light">Light</button>
+              <button class="set-seg" data-value="dark">Dark</button>
+              <button class="set-seg" data-value="auto">Auto</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Language page -->
+      <div class="set-page" data-page="language" hidden>
+        <section class="set-section">
+          <h2 class="set-h2">Response language</h2>
+          <p class="set-hint">Aside will ask the model to respond in this language.</p>
+          <select id="language-select" class="set-select">
+            <option value="auto">Auto (detect from page)</option>
+            <option value="en">English</option>
+            <option value="he">עברית · Hebrew</option>
+            <option value="es">Español</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
+            <option value="zh">中文</option>
+            <option value="ar">العربية</option>
+            <option value="ja">日本語</option>
+          </select>
+        </section>
+      </div>
+
+      <!-- Advanced page -->
+      <div class="set-page" data-page="advanced" hidden>
+        <section class="set-section">
+          <h2 class="set-h2">Page context</h2>
+          <div class="set-row">
+            <label>Include page text in prompts</label>
+            <label class="set-switch">
+              <input type="checkbox" id="page-context-toggle" checked/>
+              <span class="set-switch-track"></span>
+            </label>
+          </div>
+        </section>
+        <section class="set-section">
+          <h2 class="set-h2">Reset</h2>
+          <button class="set-danger-btn" id="reset-btn">Reset all settings</button>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

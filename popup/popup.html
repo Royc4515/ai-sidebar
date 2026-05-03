@@ -2,101 +2,116 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>AI Sidebar</title>
+  <title>Aside</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #faf9f5; --bg-sunk: #f3f1ea; --surface: #ffffff; --surface-2: #f7f5ee;
+      --line: rgba(20,18,14,0.08); --line-strong: rgba(20,18,14,0.14);
+      --ink: #1f1d18; --ink-2: #3a3833; --ink-3: #6b675f; --ink-4: #918d83;
+      --accent: #c8643c; --success: #4a8f5a;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1f1e1b; --bg-sunk: #1a1917; --surface: #26241f; --surface-2: #2f2d28;
+        --line: rgba(255,250,240,0.07); --line-strong: rgba(255,250,240,0.13);
+        --ink: #f5f2e9; --ink-2: #d8d4c7; --ink-3: #a09c8e; --ink-4: #7a766b;
+        --accent: #d97757;
+      }
+    }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0f0f1a;
-      color: #e0e0f0;
-      width: 240px;
-      padding: 16px;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg); color: var(--ink);
+      width: 280px; padding: 14px;
+      display: flex; flex-direction: column; gap: 10px;
     }
-    .popup-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 14px;
+    .head { display: flex; align-items: center; gap: 10px; }
+    .head-text { display: flex; flex-direction: column; line-height: 1.2; }
+    .title { font-weight: 600; font-size: 15px; }
+    .sub { color: var(--ink-3); font-size: 11.5px; }
+    .row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 11px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font-family: inherit; font-size: 13px;
+      color: var(--ink); cursor: default;
     }
-    .popup-logo { font-size: 22px; }
-    .popup-title { font-size: 16px; font-weight: 700; }
-    .provider-status {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: #1a1a2e;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 8px;
-      padding: 10px 12px;
-      margin-bottom: 12px;
-      font-size: 13px;
-    }
-    .status-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: #4caf81;
-      flex-shrink: 0;
-    }
-    .status-dot.none { background: #555; }
-    .provider-name { color: #e0e0f0; font-weight: 500; }
-    .provider-none { color: #8888aa; }
-    .toggle-btn {
-      width: 100%;
-      background: #7c6af7;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
+    .row-label { font-weight: 600; flex: 1; text-align: start; }
+    .row-sub { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; color: var(--ink-3); font-size: 11px; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #b9b5a9; flex-shrink: 0; }
+    .dot.ok { background: var(--success); }
+    .dot.warn { background: #c08a2a; }
+    .cta {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      background: var(--ink); color: var(--bg);
+      border: none; border-radius: 10px;
       padding: 10px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-bottom: 8px;
-      transition: background 0.15s;
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: background .15s;
     }
-    .toggle-btn:hover { background: #9589f9; }
-    .shortcut-hint {
-      text-align: center;
-      font-size: 11px;
-      color: #8888aa;
-      margin-bottom: 12px;
+    .cta:hover { background: var(--accent); }
+    .shortcut {
+      text-align: center; font-size: 11.5px; color: var(--ink-3);
+      display: flex; align-items: center; justify-content: center; gap: 4px;
     }
-    .settings-link {
-      display: block;
-      text-align: center;
-      font-size: 12px;
-      color: #8888aa;
-      text-decoration: none;
-      padding: 6px;
-      border-radius: 6px;
-      transition: color 0.15s;
-    }
-    .settings-link:hover { color: #7c6af7; }
-    kbd {
-      background: #242442;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 4px;
+    .kbd {
+      font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+      font-size: 10.5px;
+      background: var(--surface-2);
+      color: var(--ink-2);
+      border: 1px solid var(--line);
+      border-bottom-width: 2px;
+      border-radius: 5px;
       padding: 1px 5px;
-      font-family: inherit;
-      font-size: 11px;
     }
+    .divider { height: 1px; background: var(--line); margin: 2px 0; }
+    .link {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 10px;
+      background: transparent; border: none; border-radius: 8px;
+      color: var(--ink-2); font-family: inherit; font-size: 12.5px;
+      cursor: pointer; text-align: start;
+    }
+    .link:hover { background: var(--surface-2); color: var(--ink); }
   </style>
 </head>
 <body>
-  <div class="popup-header">
-    <span class="popup-logo">✨</span>
-    <span class="popup-title">AI Sidebar</span>
+  <div class="head">
+    <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
+      <path d="M16 3c2 5 5.5 8.5 10.5 10.5C21.5 15.5 18 19 16 24 14 19 10.5 15.5 5.5 13.5 10.5 11.5 14 8 16 3z" fill="var(--accent)"/>
+      <circle cx="16" cy="27" r="1.7" fill="var(--accent)"/>
+    </svg>
+    <div class="head-text">
+      <div class="title">Aside</div>
+      <div class="sub">AI in your sidebar</div>
+    </div>
   </div>
 
-  <div class="provider-status" id="provider-status">
-    <div class="status-dot none" id="status-dot"></div>
-    <span id="provider-name-text" class="provider-none">No provider set</span>
+  <div class="row" id="status-row">
+    <span class="dot" id="status-dot"></span>
+    <span class="row-label" id="provider-name-text">No provider set</span>
+    <span class="row-sub" id="provider-model-text"></span>
   </div>
 
-  <button class="toggle-btn" id="toggle-btn">Toggle Sidebar</button>
-  <div class="shortcut-hint">or press <kbd>Alt+A</kbd> on any page</div>
+  <button class="cta" id="toggle-btn">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8"/></svg>
+    <span>Open sidebar</span>
+  </button>
+  <div class="shortcut">or press <span class="kbd">Alt</span> <span class="kbd">A</span> on any page</div>
 
-  <a href="settings.html" class="settings-link" id="settings-link">⚙ Settings</a>
+  <div class="divider"></div>
 
+  <button class="link" id="settings-link">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.7l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.7-.3 1.6 1.6 0 0 0-1 1.4V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.4 1.6 1.6 0 0 0-1.7.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.7 1.6 1.6 0 0 0-1.4-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.4-1 1.6 1.6 0 0 0-.3-1.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.7.3H9a1.6 1.6 0 0 0 1-1.4V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.4 1.6 1.6 0 0 0 1.7-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.7V9a1.6 1.6 0 0 0 1.4 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.4 1z"/></svg>
+    <span>Settings</span>
+  </button>
+
+  <script src="../_preview/chrome-shim.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
