@@ -8,7 +8,7 @@ class GrokProvider extends BaseProvider {
         'Authorization': `Bearer ${this.apiKey}`
       },
       body: JSON.stringify({
-        model: 'grok-2-1212',
+        model: 'grok-3-mini',
         max_tokens: 2048,
         messages: [
           { role: 'system', content: system },

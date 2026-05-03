@@ -114,7 +114,6 @@
     const btn = document.getElementById(TRIGGER_ID);
     if (btn) {
       btn.classList.remove('is-active');
-      // Briefly keep it in DOM but inactive
     }
   }
 

@@ -14,12 +14,12 @@ let pickerOpen   = false;
 let busy         = false;
 
 const PROVIDERS = [
-  { id: 'claude', name: 'Claude', model: '3.5 Sonnet',   hue: 'var(--p-claude)' },
-  { id: 'gemini', name: 'Gemini', model: '2.0 Flash',    hue: 'var(--p-gemini)' },
-  { id: 'openai', name: 'GPT-4o', model: '4o mini',      hue: 'var(--p-gpt)'    },
-  { id: 'grok',   name: 'Grok',   model: 'Grok-2',       hue: 'var(--p-grok)'   },
-  { id: 'groq',   name: 'Groq',   model: 'Llama 3.3',    hue: 'var(--p-groq)'   },
-  { id: 'ollama', name: 'Ollama', model: 'Local',        hue: 'var(--p-ollama)' },
+  { id: 'claude', name: 'Claude', model: 'claude-sonnet-4-6', hue: 'var(--p-claude)' },
+  { id: 'gemini', name: 'Gemini', model: 'gemini-2.0-flash',  hue: 'var(--p-gemini)' },
+  { id: 'openai', name: 'GPT-4o', model: 'gpt-4o-mini',       hue: 'var(--p-gpt)'    },
+  { id: 'grok',   name: 'Grok',   model: 'grok-3-mini',       hue: 'var(--p-grok)'   },
+  { id: 'groq',   name: 'Groq',   model: 'llama-3.3-70b',     hue: 'var(--p-groq)'   },
+  { id: 'ollama', name: 'Ollama', model: 'local',             hue: 'var(--p-ollama)' },
 ];
 
 const ACTIONS = {
@@ -253,18 +253,6 @@ window.addEventListener('message', (e) => {
     requestPageContent();
     window.parent.postMessage({ type: 'REQUEST_SELECTED_TEXT' }, '*');
   }
-  if (msg.type === 'CONTEXT_MENU_ACTION') {
-    if (msg.text) {
-      selectedText = msg.text;
-      updateSelectionUI();
-    }
-    handleAction(msg.action);
-  }
-});
-
-// Listen for storage changes (e.g. key updated in options)
-chrome.storage.onChanged.addListener((changes) => {
-  loadSettings();
 });
 
 function updateSelectionUI() {

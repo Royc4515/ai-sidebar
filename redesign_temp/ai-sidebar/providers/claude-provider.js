@@ -10,7 +10,7 @@ class ClaudeProvider extends BaseProvider {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-latest',
+        model: 'claude-sonnet-4-5',
         max_tokens: 2048,
         system,
         messages: [{ role: 'user', content: user }]

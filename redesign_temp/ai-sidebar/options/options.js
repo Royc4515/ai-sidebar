@@ -7,7 +7,7 @@ const PROVIDERS = [
   { id: 'openai',  name: 'GPT-4o',  model: 'gpt-4o-mini',           letter: 'G', tier: 'paid', hue: 'var(--p-gpt)',    placeholder: 'sk-…' },
   { id: 'gemini',  name: 'Gemini',  model: 'gemini-2.0-flash',      letter: 'G', tier: 'free', hue: 'var(--p-gemini)', placeholder: 'AIza…' },
   { id: 'grok',    name: 'Grok',    model: 'grok-3-mini',           letter: 'X', tier: 'paid', hue: 'var(--p-grok)',   placeholder: 'xai-…' },
-  { id: 'groq',    name: 'Groq',    model: 'llama-3.1-70b',         letter: 'G', tier: 'free', hue: 'var(--p-groq)',   placeholder: 'gsk_…' },
+  { id: 'groq',    name: 'Groq',    model: 'llama-3.3-70b',         letter: 'G', tier: 'free', hue: 'var(--p-groq)',   placeholder: 'gsk_…' },
   { id: 'ollama',  name: 'Ollama',  model: 'local',                 letter: 'O', tier: 'free', hue: 'var(--p-ollama)', placeholder: '' },
 ];
 
