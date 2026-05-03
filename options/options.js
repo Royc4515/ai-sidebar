@@ -116,8 +116,9 @@ function renderProviders() {
     </button>
   `).join('');
   root.querySelectorAll('.set-provider').forEach(b => {
-    b.onclick = () => {
+    b.onclick = async () => {
       state.activeProvider = b.dataset.id;
+      await chrome.storage.sync.set({ activeProvider: state.activeProvider });
       renderProviders();
     };
   });
@@ -149,7 +150,7 @@ function renderKeys() {
   });
   root.querySelectorAll('.set-key-validate').forEach(btn => {
     btn.onclick = async () => {
-      await chrome.storage.sync.set({ apiKeys: state.apiKeys });
+      await chrome.storage.sync.set({ apiKeys: state.apiKeys, activeProvider: state.activeProvider });
       btn.textContent = '✓ Saved';
       btn.classList.add('is-valid');
       setTimeout(() => { btn.classList.remove('is-valid'); btn.textContent = 'Save'; }, 1500);
