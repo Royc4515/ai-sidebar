@@ -289,6 +289,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="button
   color: var(--ink-4); font-weight: 600; margin-bottom: 6px;
 }
 
+/* ── Selection action chips ──────────────────────────────────────── */
+.sb-selection-actions {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin-top: 10px; padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.sb-selection-actions .sb-chip {
+  font-size: 11.5px; padding: 5px 9px;
+}
+
 /* ── Chat turns ─────────────────────────────────────────────────── */
 .sb-turn { display: flex; gap: 9px; padding: 10px 14px; align-items: flex-start; }
 .sb-turn--user { justify-content: flex-end; }

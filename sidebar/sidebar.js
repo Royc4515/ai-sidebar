@@ -114,6 +114,11 @@ function bindUI() {
       if (last && last.role === 'user') runFromUserTurn(last);
     }
   };
+
+  document.getElementById('selection-wrap').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (btn) handleAction(btn.dataset.action);
+  });
 }
 
 function switchTab(name) {
@@ -252,6 +257,11 @@ window.addEventListener('message', (e) => {
   if (msg.type === 'SIDEBAR_OPENED') {
     requestPageContent();
     window.parent.postMessage({ type: 'REQUEST_SELECTED_TEXT' }, '*');
+  }
+  if (msg.type === 'SELECTION_TRIGGER') {
+    if (msg.text) { selectedText = msg.text; updateSelectionUI(); }
+    switchTab('chat');
+    document.getElementById('tab-chat').scrollTop = 0;
   }
   if (msg.type === 'CONTEXT_MENU_ACTION') {
     if (msg.text) {

@@ -73,7 +73,12 @@
     btn.onclick = (e) => {
       e.preventDefault();
       e.stopPropagation();
+      const text = getSelectedText();
       show();
+      setTimeout(() => {
+        const iframe = document.getElementById(IFRAME_ID);
+        iframe?.contentWindow?.postMessage({ type: 'SELECTION_TRIGGER', text }, '*');
+      }, 250);
     };
     document.body.appendChild(btn);
     return btn;

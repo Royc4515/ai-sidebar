@@ -53,6 +53,7 @@
         "sidebar/sidebar.html",
         "sidebar/sidebar.css",
         "sidebar/sidebar.js",
+        "sidebar/i18n.js",
         "providers/*.js",
         "icons/*.png"
       ],
