@@ -40,7 +40,7 @@ html.aside-open { /* hook for sites to react if they want */ }
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: #2563eb; /* default blue, should ideally use a variable if defined */
+  background: #c8643c; /* brand accent — matches --accent in sidebar */
   color: white;
   display: flex;
   align-items: center;
@@ -58,7 +58,7 @@ html.aside-open { /* hook for sites to react if they want */ }
   pointer-events: auto;
 }
 #aside-selection-trigger:hover {
-  background: #1d4ed8;
+  background: #b85530; /* --accent-2 */
   transform: scale(1.05);
 }
 

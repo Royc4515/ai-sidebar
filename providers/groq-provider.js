@@ -1,47 +1,42 @@
 class GroqProvider extends BaseProvider {
-  async complete(prompt, pageContext = '') {
-    if (!this.apiKey) {
-      throw new Error('Groq API key is missing. Please add it in settings.');
-    }
-    const { system, user } = this.buildMessages(prompt, pageContext);
-    
-    const fetchWithModel = async (modelName) => {
-      return await this._fetchJson('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
-        },
-        body: JSON.stringify({
-          model: modelName,
-          max_tokens: 2048,
-          messages: [
-            { role: 'system', content: system },
-            { role: 'user', content: user }
-          ]
-        })
-      });
-    };
+  _msgs(messages, systemPrompt) {
+    return [{ role: 'system', content: systemPrompt }, ...messages];
+  }
 
-    try {
-      // Primary model: Llama 3.3 70B
-      const data = await fetchWithModel('llama-3.3-70b-versatile');
-      if (!data.choices || data.choices.length === 0) {
-        throw new Error('Groq API returned an empty response.');
-      }
+  async complete(messages, systemPrompt) {
+    if (!this.apiKey) throw new Error('Groq API key is missing. Please add it in settings.');
+    const body = { max_tokens: 2048, messages: this._msgs(messages, systemPrompt) };
+    const tryModel = async (model) => {
+      const data = await this._fetchJson('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.apiKey}` },
+        body: JSON.stringify({ ...body, model })
+      });
+      if (!data.choices?.length) throw new Error('Groq API returned an empty response.');
       return data.choices[0].message.content || '';
+    };
+    try {
+      return await tryModel('llama-3.3-70b-versatile');
     } catch (err) {
-      // Fallback to Llama 3.1 70B if Llama 3.3 fails (e.g. not available in all regions yet)
       if (err.message.includes('model_not_found') || err.message.includes('not found')) {
-        try {
-          const data = await fetchWithModel('llama-3.1-70b-versatile');
-          return data.choices[0].message.content || '';
-        } catch (innerErr) {
-          throw innerErr;
-        }
+        return await tryModel('llama-3.1-70b-versatile');
       }
       throw err;
     }
+  }
+
+  async completeStream(messages, systemPrompt, onChunk) {
+    if (!this.apiKey) throw new Error('Groq API key is missing. Please add it in settings.');
+    return this._streamSSE(
+      'https://api.groq.com/openai/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.apiKey}` },
+        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: 2048, stream: true, messages: this._msgs(messages, systemPrompt) })
+      },
+      onChunk,
+      ev => ev.choices?.[0]?.delta?.content || ''
+    );
   }
 }
 self.GroqProvider = GroqProvider;

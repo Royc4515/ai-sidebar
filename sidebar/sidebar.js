@@ -1,17 +1,13 @@
-/**
- * Sidebar — main logic.
- * Hybrid layout: chat thread + tools tab + command bar.
- */
-
 // ── State ──────────────────────────────────────────────────────────────────
 let settings     = {};
 let provider     = null;
 let selectedText = '';
 let pageContent  = '';
-let turns        = [];      // { role, content, action, model, html? }
+let turns        = [];      // { role, content, display?, action?, model?, html?, loading?, streaming? }
 let activeTab    = 'chat';
 let pickerOpen   = false;
 let busy         = false;
+let _renderPending = false;
 
 const PROVIDERS = [
   { id: 'claude', name: 'Claude', model: '3.5 Sonnet',   hue: 'var(--p-claude)' },
@@ -19,19 +15,8 @@ const PROVIDERS = [
   { id: 'openai', name: 'GPT-4o', model: '4o mini',      hue: 'var(--p-gpt)'    },
   { id: 'grok',   name: 'Grok',   model: 'Grok-2',       hue: 'var(--p-grok)'   },
   { id: 'groq',   name: 'Groq',   model: 'Llama 3.3',    hue: 'var(--p-groq)'   },
-  { id: 'ollama', name: 'Ollama', model: 'Local',        hue: 'var(--p-ollama)' },
+  { id: 'ollama', name: 'Ollama', model: 'Local',         hue: 'var(--p-ollama)' },
 ];
-
-const ACTIONS = {
-  explain:   (t)        => `Explain the following clearly and concisely:\n\n"${t}"`,
-  summarize: (p)        => `Summarize this page in concise key bullet points:\n\n${p}`,
-  ask:       (q, p)     => `Based on the following page content, answer this question: ${q}`,
-  reply:     (t)        => `Suggest exactly 3 short, distinct reply options to the following message. Number them 1, 2, 3:\n\n"${t}"`,
-  extract:   (p)        => `Extract all structured data from the page below as a markdown table with clear headers:\n\n${p}`,
-  translate: (t)        => `Translate the following text to English (or to the user's language preference). Preserve formatting:\n\n"${t}"`,
-  rewrite:   (t)        => `Rewrite the following to be clearer and more concise. Keep meaning intact:\n\n"${t}"`,
-  find:      (q, p)     => `Find and quote any sections of this page related to: "${q}"\n\nPage:\n${p}`,
-};
 
 const ACTION_LABELS = {
   explain: 'Explanation', summarize: 'Summary', ask: 'Answer',
@@ -41,22 +26,22 @@ const ACTION_LABELS = {
 
 const TOOL_DEFS = {
   page: [
-    { id: 'summarize', label: 'Summarize',   sub: 'Smart digest of the page',  iconPath: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>' },
-    { id: 'extract',   label: 'Extract data',sub: 'Tables, lists, facts',      iconPath: '<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>' },
-    { id: 'find',      label: 'Find on page',sub: 'Search & quote sections',   iconPath: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5"/>' },
-    { id: 'translate-page', label: 'Translate page', sub: 'Match your language', iconPath: '<path d="M4 5h7M7.5 4v2M5 9c.7 2.5 2 4.5 4 6M11 9c-1.5 4-4 6.5-7 8M14 21l4-9 4 9M15.5 18h5"/>' },
+    { id: 'summarize',      label: 'Summarize',    sub: 'Smart digest of the page',  iconPath: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>' },
+    { id: 'extract',        label: 'Extract data', sub: 'Tables, lists, facts',      iconPath: '<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>' },
+    { id: 'find',           label: 'Find on page', sub: 'Search & quote sections',   iconPath: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5"/>' },
+    { id: 'translate-page', label: 'Translate',    sub: 'Match your language',       iconPath: '<path d="M4 5h7M7.5 4v2M5 9c.7 2.5 2 4.5 4 6M11 9c-1.5 4-4 6.5-7 8M14 21l4-9 4 9M15.5 18h5"/>' },
   ],
   sel: [
-    { id: 'explain',   label: 'Explain',     sub: 'Clear explanation',         iconPath: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.7 1.5 1.5 1.5 2.5h5c0-1 .7-1.8 1.5-2.5A6 6 0 0 0 12 3z"/>' },
-    { id: 'reply',     label: 'Reply',       sub: '3 reply suggestions',       iconPath: '<path d="M9 14l-4-4 4-4"/><path d="M5 10h7a6 6 0 0 1 6 6v2"/>' },
-    { id: 'translate', label: 'Translate',   sub: 'Translate selection',       iconPath: '<path d="M4 5h7M7.5 4v2M5 9c.7 2.5 2 4.5 4 6M11 9c-1.5 4-4 6.5-7 8M14 21l4-9 4 9M15.5 18h5"/>' },
-    { id: 'rewrite',   label: 'Rewrite',     sub: 'Improve clarity',           iconPath: '<path d="M14 4l6 6L9 21H3v-6z"/>' },
+    { id: 'explain',   label: 'Explain',   sub: 'Clear explanation',    iconPath: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.7 1.5 1.5 1.5 2.5h5c0-1 .7-1.8 1.5-2.5A6 6 0 0 0 12 3z"/>' },
+    { id: 'reply',     label: 'Reply',     sub: '3 reply suggestions',  iconPath: '<path d="M9 14l-4-4 4-4"/><path d="M5 10h7a6 6 0 0 1 6 6v2"/>' },
+    { id: 'translate', label: 'Translate', sub: 'Translate selection',  iconPath: '<path d="M4 5h7M7.5 4v2M5 9c.7 2.5 2 4.5 4 6M11 9c-1.5 4-4 6.5-7 8M14 21l4-9 4 9M15.5 18h5"/>' },
+    { id: 'rewrite',   label: 'Rewrite',   sub: 'Improve clarity',      iconPath: '<path d="M14 4l6 6L9 21H3v-6z"/>' },
   ]
 };
 
 const CMD_BAR = [
-  { id: 'summarize', label: 'Summarize', accent: true },
-  { id: 'extract',   label: 'Extract' },
+  { id: 'summarize',      label: 'Summarize', accent: true },
+  { id: 'extract',        label: 'Extract' },
   { id: 'translate-page', label: 'Translate' },
   { id: 'rewrite-page',   label: 'Rewrite' },
   { id: 'find-prompt',    label: 'Find' },
@@ -90,7 +75,7 @@ function bindUI() {
     window.parent.postMessage({ type: 'CLOSE_SIDEBAR' }, '*');
   document.getElementById('settings-btn').onclick = () => chrome.runtime.openOptionsPage();
   document.getElementById('onboarding-settings-btn').onclick = () => chrome.runtime.openOptionsPage();
-
+  document.getElementById('new-chat-btn').onclick = newChat;
   document.getElementById('model-btn').onclick = () => togglePicker();
 
   document.getElementById('ask-btn').onclick = handleAsk;
@@ -109,9 +94,8 @@ function bindUI() {
 
   document.getElementById('retry-btn').onclick = () => {
     document.getElementById('error-state').style.display = 'none';
-    if (turns.length) {
-      const last = turns[turns.length-1];
-      if (last && last.role === 'user') runFromUserTurn(last);
+    if (turns.length && turns[turns.length - 1]?.role === 'user') {
+      runPrompt('ask');
     }
   };
 
@@ -139,6 +123,21 @@ function hideOnboarding() {
   document.getElementById('onboarding').style.display = 'none';
   document.getElementById('main-content').style.display = 'flex';
   document.getElementById('tabs').style.display = 'flex';
+}
+
+// ── New Chat ───────────────────────────────────────────────────────────
+function newChat() {
+  if (busy) return;
+  turns = [];
+  selectedText = '';
+  updateSelectionUI();
+  document.getElementById('hero').style.display = '';
+  document.getElementById('turns').innerHTML = '';
+  document.getElementById('error-state').style.display = 'none';
+  const input = document.getElementById('ask-input');
+  input.value = '';
+  input.style.height = 'auto';
+  renderHero();
 }
 
 // ── Header / Picker ────────────────────────────────────────────────────
@@ -180,9 +179,7 @@ function togglePicker() {
       const id = b.dataset.id;
       if (id === settings.activeProvider) { togglePicker(); return; }
       if (!settings.apiKeys[id] && id !== 'ollama') {
-        togglePicker();
-        chrome.runtime.openOptionsPage();
-        return;
+        togglePicker(); chrome.runtime.openOptionsPage(); return;
       }
       settings.activeProvider = id;
       await chrome.storage.sync.set({ activeProvider: id });
@@ -197,9 +194,9 @@ function togglePicker() {
 function renderHero() {
   const wrap = document.getElementById('hero-suggest');
   const items = [
-    { id: 'summarize',  t: 'Summarize this page',         icon: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>' },
-    { id: 'extract',    t: 'Extract key points & data',   icon: '<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>' },
-    { id: 'translate-page', t: 'Translate this page',     icon: '<path d="M4 5h7M7.5 4v2M5 9c.7 2.5 2 4.5 4 6M11 9c-1.5 4-4 6.5-7 8M14 21l4-9 4 9M15.5 18h5"/>' },
+    { id: 'summarize',      t: 'Summarize this page',       icon: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>' },
+    { id: 'extract',        t: 'Extract key points & data', icon: '<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>' },
+    { id: 'translate-page', t: 'Translate this page',       icon: '<path d="M4 5h7M7.5 4v2M5 9c.7 2.5 2 4.5 4 6M11 9c-1.5 4-4 6.5-7 8M14 21l4-9 4 9M15.5 18h5"/>' },
   ];
   wrap.innerHTML = items.map(i => `
     <button class="sb-suggest-btn" data-action="${i.id}">
@@ -264,28 +261,32 @@ window.addEventListener('message', (e) => {
     document.getElementById('tab-chat').scrollTop = 0;
   }
   if (msg.type === 'CONTEXT_MENU_ACTION') {
-    if (msg.text) {
-      selectedText = msg.text;
-      updateSelectionUI();
-    }
+    if (msg.text) { selectedText = msg.text; updateSelectionUI(); }
     handleAction(msg.action);
   }
 });
 
-// Listen for storage changes (e.g. key updated in options)
-chrome.storage.onChanged.addListener((changes) => {
-  loadSettings();
-});
+chrome.storage.onChanged.addListener(() => { loadSettings(); });
 
 function updateSelectionUI() {
   const wrap = document.getElementById('selection-wrap');
   const prev = document.getElementById('selected-preview');
-  if (selectedText && selectedText.length > 0) {
+  if (selectedText) {
     wrap.style.display = '';
-    prev.textContent = selectedText.length > 240 ? selectedText.slice(0,240)+'…' : selectedText;
+    prev.textContent = selectedText.length > 240 ? selectedText.slice(0, 240) + '…' : selectedText;
   } else {
     wrap.style.display = 'none';
   }
+}
+
+// ── Conversation history ───────────────────────────────────────────────
+// Builds the API messages array from the turns state (excludes loading skeletons
+// and empty assistant turns; maps display → content is ignored, API gets full content).
+function buildConversationMessages() {
+  return turns
+    .filter(t => !t.loading && t.role &&
+      (t.role === 'user' || (t.role === 'assistant' && t.content)))
+    .map(t => ({ role: t.role, content: t.content }));
 }
 
 // ── Action dispatch ────────────────────────────────────────────────────
@@ -293,44 +294,55 @@ async function handleAction(action) {
   if (!provider) { showOnboarding(); return; }
   if (busy) return;
 
-  // Prompts that need text
-  let userVisible, prompt, label;
+  let content, display, label;
 
   switch (action) {
     case 'summarize':
       if (!pageContent) return showError('Could not read this page.');
-      userVisible = 'Summarize this page'; prompt = ACTIONS.summarize(truncate(pageContent)); label = 'summarize'; break;
+      content = 'Summarize this page in concise bullet points.';
+      label = 'summarize'; break;
     case 'extract':
       if (!pageContent) return showError('Could not read this page.');
-      userVisible = 'Extract structured data'; prompt = ACTIONS.extract(truncate(pageContent)); label = 'extract'; break;
+      content = 'Extract all structured data from this page as a markdown table with clear headers.';
+      label = 'extract'; break;
     case 'translate-page':
       if (!pageContent) return showError('Could not read this page.');
-      userVisible = 'Translate this page'; prompt = `Translate this page to English. Preserve structure.\n\n${truncate(pageContent)}`; label = 'translate'; break;
+      content = 'Translate the content of this page to English. Preserve structure.';
+      label = 'translate'; break;
     case 'rewrite-page':
       if (!pageContent) return showError('Could not read this page.');
-      userVisible = 'Rewrite this page concisely'; prompt = `Rewrite the following more clearly and concisely:\n\n${truncate(pageContent)}`; label = 'rewrite'; break;
+      content = 'Rewrite the page content to be clearer and more concise.';
+      label = 'rewrite'; break;
     case 'find-prompt':
       document.getElementById('ask-input').focus();
       document.getElementById('ask-input').placeholder = 'What should I find on this page?';
       return;
     case 'explain':
       if (!selectedText) return showError('Select some text first.');
-      userVisible = `Explain: "${ellipsis(selectedText, 80)}"`; prompt = ACTIONS.explain(selectedText); label = 'explain'; break;
+      content = `Explain this clearly and concisely:\n\n"${selectedText}"`;
+      display = `Explain: "${ellipsis(selectedText, 80)}"`;
+      label = 'explain'; break;
     case 'reply':
       if (!selectedText) return showError('Select a message first.');
-      userVisible = `Reply to: "${ellipsis(selectedText, 80)}"`; prompt = ACTIONS.reply(selectedText); label = 'reply'; break;
+      content = `Suggest 3 short, distinct reply options to this message. Number them 1, 2, 3:\n\n"${selectedText}"`;
+      display = `Reply to: "${ellipsis(selectedText, 80)}"`;
+      label = 'reply'; break;
     case 'translate':
       if (!selectedText) return showError('Select some text first.');
-      userVisible = `Translate: "${ellipsis(selectedText, 80)}"`; prompt = ACTIONS.translate(selectedText); label = 'translate'; break;
+      content = `Translate this text to English. Preserve formatting:\n\n"${selectedText}"`;
+      display = `Translate: "${ellipsis(selectedText, 80)}"`;
+      label = 'translate'; break;
     case 'rewrite':
       if (!selectedText) return showError('Select some text first.');
-      userVisible = `Rewrite: "${ellipsis(selectedText, 80)}"`; prompt = `Rewrite to be clearer and more concise:\n\n"${selectedText}"`; label = 'rewrite'; break;
+      content = `Rewrite this to be clearer and more concise:\n\n"${selectedText}"`;
+      display = `Rewrite: "${ellipsis(selectedText, 80)}"`;
+      label = 'rewrite'; break;
     default:
       return;
   }
 
-  pushTurn({ role: 'user', content: userVisible });
-  await runPrompt(prompt, label);
+  pushTurn({ role: 'user', content, display });
+  await runPrompt(label);
 }
 
 async function handleAsk() {
@@ -340,32 +352,35 @@ async function handleAsk() {
   const q = input.value.trim();
   if (!q) return;
   input.value = ''; input.style.height = 'auto';
-
   pushTurn({ role: 'user', content: q });
-  await runPrompt(ACTIONS.ask(q, truncate(pageContent)), 'ask');
+  await runPrompt('ask');
 }
 
-async function runFromUserTurn(turn) {
-  // Re-run by detecting from text — simplistic: just ask again.
-  await runPrompt(turn.content, 'ask');
-}
-
-async function runPrompt(prompt, label) {
+// ── Core prompt runner (streaming) ────────────────────────────────────
+async function runPrompt(label) {
   busy = true;
   const skel = pushTurn({ role: 'assistant', loading: true, action: ACTION_LABELS[label] || label });
   document.getElementById('ask-btn').disabled = true;
 
+  const messages = buildConversationMessages();
+  const langName = getLanguageName();
+  const systemPrompt = provider.buildSystemPrompt(truncate(pageContent), langName);
+
+  let accum = '';
   try {
-    const langSuffix = getLanguageSuffix();
-    const fullPrompt = langSuffix ? `${prompt}\n\n${langSuffix}` : prompt;
-    const text = await provider.complete(fullPrompt, truncate(pageContent));
+    await provider.completeStream(messages, systemPrompt, (chunk) => {
+      accum += chunk;
+      skel.loading = false;
+      skel.streaming = true;
+      skel.content = accum;
+      skel.html = renderMarkdown(accum);
+      scheduleRenderTurns();
+    });
     skel.loading = false;
-    skel.content = text;
-    skel.html = renderMarkdown(text);
+    skel.streaming = false;
     skel.model = activeProviderInfo();
     renderTurns();
   } catch (err) {
-    // Remove loading turn
     turns.pop();
     renderTurns();
     showError(err.message || 'An unexpected error occurred.');
@@ -373,6 +388,16 @@ async function runPrompt(prompt, label) {
     busy = false;
     document.getElementById('ask-btn').disabled = false;
   }
+}
+
+// RAF-batched render: collapses rapid streaming chunk updates to ≤60fps
+function scheduleRenderTurns() {
+  if (_renderPending) return;
+  _renderPending = true;
+  requestAnimationFrame(() => {
+    _renderPending = false;
+    renderTurns();
+  });
 }
 
 function pushTurn(t) {
@@ -385,16 +410,13 @@ function pushTurn(t) {
 function renderTurns() {
   const root = document.getElementById('turns');
   root.innerHTML = turns.map((t, i) => turnHtml(t, i)).join('');
-  // Bind footer buttons
   root.querySelectorAll('[data-copy]').forEach(b => {
     b.onclick = () => {
       const idx = +b.dataset.copy;
-      const txt = turns[idx]?.content || '';
-      navigator.clipboard.writeText(txt);
+      navigator.clipboard.writeText(turns[idx]?.content || '');
       b.title = 'Copied!';
     };
   });
-  // Scroll to bottom
   const scroller = document.getElementById('tab-chat');
   scroller.scrollTop = scroller.scrollHeight;
 }
@@ -404,23 +426,24 @@ function turnHtml(t, i) {
     return `
       <div class="sb-turn sb-turn--user">
         <div class="sb-turn-body">
-          <div class="sb-turn-content sb-turn-content--user">${escapeHtml(t.content)}</div>
+          <div class="sb-turn-content sb-turn-content--user">${escapeHtml(t.display || t.content)}</div>
         </div>
       </div>`;
   }
   // assistant
+  const cursor = t.streaming ? '<span class="sb-cursor"></span>' : '';
   const body = t.loading
     ? `<div class="sb-skeleton"><div class="sb-skel-line" style="width:94%"></div><div class="sb-skel-line" style="width:78%"></div><div class="sb-skel-line" style="width:85%"></div></div>`
-    : (t.html || '');
+    : `${t.html || ''}${cursor}`;
   const action = t.action ? `<div class="sb-turn-action">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg>
       <span>${t.action}</span>
     </div>` : '';
-  const foot = (!t.loading) ? `
+  const foot = (!t.loading && !t.streaming) ? `
     <div class="sb-turn-foot">
       <span class="sb-turn-model">
-        <span class="dot" style="background:${(t.model||activeProviderInfo()).hue}"></span>
-        ${(t.model||activeProviderInfo()).name}
+        <span class="dot" style="background:${(t.model || activeProviderInfo()).hue}"></span>
+        ${(t.model || activeProviderInfo()).name}
       </span>
       <div class="sb-turn-foot-actions">
         <button class="sb-mini-btn" data-copy="${i}" title="Copy">
@@ -450,22 +473,22 @@ function showError(msg) {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────
-function getLanguageSuffix() {
+function getLanguageName() {
   const lang = settings.language;
   if (!lang || lang === 'auto') return '';
   const names = { en:'English', he:'Hebrew', es:'Spanish', fr:'French', de:'German', zh:'Chinese', ar:'Arabic', ja:'Japanese' };
-  return names[lang] ? `Please respond in ${names[lang]}.` : '';
+  return names[lang] || '';
 }
 function truncate(t) {
   if (!t) return '';
-  return t.length > 12000 ? t.slice(0,12000) + '\n\n[truncated]' : t;
+  return t.length > 12000 ? t.slice(0, 12000) + '\n\n[truncated]' : t;
 }
-function ellipsis(t, n) { return t.length > n ? t.slice(0,n) + '…' : t; }
+function ellipsis(t, n) { return t.length > n ? t.slice(0, n) + '…' : t; }
 function escapeHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ── Markdown (kept from original, with table overflow safety) ──────────
+// ── Markdown renderer ──────────────────────────────────────────────────
 function renderMarkdown(raw) {
   let text = escapeHtml(raw);
   text = text.replace(/```[\s\S]*?```/g, m => {
@@ -474,9 +497,9 @@ function renderMarkdown(raw) {
   });
   text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
   text = text.replace(/^#### (.+)$/gm, '<h4>$1</h4>')
-             .replace(/^### (.+)$/gm, '<h4>$1</h4>')
-             .replace(/^## (.+)$/gm,  '<h3>$1</h3>')
-             .replace(/^# (.+)$/gm,   '<h2>$1</h2>');
+             .replace(/^### (.+)$/gm,  '<h4>$1</h4>')
+             .replace(/^## (.+)$/gm,   '<h3>$1</h3>')
+             .replace(/^# (.+)$/gm,    '<h2>$1</h2>');
   text = text.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
              .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
              .replace(/\*(.+?)\*/g, '<em>$1</em>');
@@ -500,11 +523,11 @@ function renderTables(text) {
   return text.replace(/((\|.+\|\n)+)/g, m => {
     const rows = m.trim().split('\n').filter(r => r.trim());
     if (rows.length < 2) return m;
-    const align = (r) => /^\|[-| :]+\|$/.test(r.trim());
+    const isSep = (r) => /^\|[-| :]+\|$/.test(r.trim());
     let html = '<table><thead>'; let inHead = true;
     for (const row of rows) {
-      if (align(row)) { html += '</thead><tbody>'; inHead = false; continue; }
-      const cells = row.split('|').filter((_,i,a) => i>0 && i<a.length-1);
+      if (isSep(row)) { html += '</thead><tbody>'; inHead = false; continue; }
+      const cells = row.split('|').filter((_, i, a) => i > 0 && i < a.length - 1);
       const tag = inHead ? 'th' : 'td';
       html += '<tr>' + cells.map(c => `<${tag}>${c.trim()}</${tag}>`).join('') + '</tr>';
     }
@@ -514,11 +537,10 @@ function renderTables(text) {
   });
 }
 
-// ── Direction: respect document language ──────────────────────────────
-(function setDir(){
-  const html = document.documentElement;
-  const docDir = (window.parent && window.parent.document && window.parent.document.dir) || '';
-  if (docDir) html.dir = docDir;
+// ── Direction ─────────────────────────────────────────────────────────
+(function setDir() {
+  const docDir = (window.parent?.document?.dir) || '';
+  if (docDir) document.documentElement.dir = docDir;
 })();
 
 init();

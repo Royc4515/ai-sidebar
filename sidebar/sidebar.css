@@ -493,3 +493,18 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="button
 }
 .sb-error-title { font-weight: 600; color: var(--danger); margin-bottom: 4px; }
 .sb-error-actions { margin-top: 8px; display: flex; gap: 6px; }
+
+/* ── Streaming cursor ───────────────────────────────────────────── */
+.sb-cursor {
+  display: inline-block;
+  width: 2px; height: 0.85em;
+  background: var(--accent);
+  border-radius: 1px;
+  vertical-align: -0.05em;
+  margin-left: 2px;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
