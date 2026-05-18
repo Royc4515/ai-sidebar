@@ -94,9 +94,8 @@ function bindUI() {
 
   document.getElementById('retry-btn').onclick = () => {
     document.getElementById('error-state').style.display = 'none';
-    if (turns.length && turns[turns.length - 1]?.role === 'user') {
-      runPrompt('ask');
-    }
+    const last = turns[turns.length - 1];
+    if (last?.role === 'user') runPrompt(last.label || 'ask');
   };
 
   document.getElementById('selection-wrap').addEventListener('click', (e) => {
@@ -266,7 +265,13 @@ window.addEventListener('message', (e) => {
   }
 });
 
-chrome.storage.onChanged.addListener(() => { loadSettings(); });
+chrome.storage.onChanged.addListener((changes) => {
+  // Skip our own activeProvider write — we updated `provider` and `settings` already.
+  const keys = Object.keys(changes);
+  if (keys.length === 1 && keys[0] === 'activeProvider'
+      && changes.activeProvider.newValue === settings.activeProvider) return;
+  loadSettings();
+});
 
 function updateSelectionUI() {
   const wrap = document.getElementById('selection-wrap');
@@ -279,14 +284,14 @@ function updateSelectionUI() {
   }
 }
 
-// ── Conversation history ───────────────────────────────────────────────
-// Builds the API messages array from the turns state (excludes loading skeletons
-// and empty assistant turns; maps display → content is ignored, API gets full content).
+const MAX_HISTORY_TURNS = 20;
+
 function buildConversationMessages() {
-  return turns
-    .filter(t => !t.loading && t.role &&
+  const msgs = turns
+    .filter(t => !t.loading &&
       (t.role === 'user' || (t.role === 'assistant' && t.content)))
     .map(t => ({ role: t.role, content: t.content }));
+  return msgs.length > MAX_HISTORY_TURNS ? msgs.slice(-MAX_HISTORY_TURNS) : msgs;
 }
 
 // ── Action dispatch ────────────────────────────────────────────────────
@@ -341,7 +346,7 @@ async function handleAction(action) {
       return;
   }
 
-  pushTurn({ role: 'user', content, display });
+  pushTurn({ role: 'user', content, display, label });
   await runPrompt(label);
 }
 
@@ -352,7 +357,7 @@ async function handleAsk() {
   const q = input.value.trim();
   if (!q) return;
   input.value = ''; input.style.height = 'auto';
-  pushTurn({ role: 'user', content: q });
+  pushTurn({ role: 'user', content: q, label: 'ask' });
   await runPrompt('ask');
 }
 
@@ -373,11 +378,12 @@ async function runPrompt(label) {
       skel.loading = false;
       skel.streaming = true;
       skel.content = accum;
-      skel.html = renderMarkdown(accum);
       scheduleRenderTurns();
     });
     skel.loading = false;
     skel.streaming = false;
+    skel.content = accum;
+    skel.html = renderMarkdown(accum);
     skel.model = activeProviderInfo();
     renderTurns();
   } catch (err) {
@@ -390,12 +396,14 @@ async function runPrompt(label) {
   }
 }
 
-// RAF-batched render: collapses rapid streaming chunk updates to ≤60fps
+// RAF-batched: parse markdown for the streaming turn once per frame, not per chunk.
 function scheduleRenderTurns() {
   if (_renderPending) return;
   _renderPending = true;
   requestAnimationFrame(() => {
     _renderPending = false;
+    const last = turns[turns.length - 1];
+    if (last?.streaming && last.content) last.html = renderMarkdown(last.content);
     renderTurns();
   });
 }
@@ -430,7 +438,6 @@ function turnHtml(t, i) {
         </div>
       </div>`;
   }
-  // assistant
   const cursor = t.streaming ? '<span class="sb-cursor"></span>' : '';
   const body = t.loading
     ? `<div class="sb-skeleton"><div class="sb-skel-line" style="width:94%"></div><div class="sb-skel-line" style="width:78%"></div><div class="sb-skel-line" style="width:85%"></div></div>`

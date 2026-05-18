@@ -1,7 +1,6 @@
 class BaseProvider {
   constructor(apiKey) { this.apiKey = apiKey; }
 
-  // Returns the system prompt string embedding page context + language preference.
   buildSystemPrompt(pageContext, language) {
     let sys = 'You are a helpful AI assistant embedded in a browser sidebar.';
     if (pageContext) {
@@ -11,22 +10,23 @@ class BaseProvider {
     return sys;
   }
 
-  // messages: [{role:'user'|'assistant', content:string}]
+  // Prepends the system prompt to user/assistant turns for OpenAI-style APIs.
+  _msgs(messages, systemPrompt) {
+    return [{ role: 'system', content: systemPrompt }, ...messages];
+  }
+
   async complete(messages, systemPrompt) {
     throw new Error('not implemented');
   }
 
-  // Calls onChunk(deltaText) for each text delta received.
-  // Returns Promise<string> with full accumulated text.
-  // Default fallback: calls complete() once and emits one chunk.
+  // Default fallback: single-chunk emit from complete().
   async completeStream(messages, systemPrompt, onChunk) {
     const text = await this.complete(messages, systemPrompt);
     onChunk(text);
     return text;
   }
 
-  // Generic SSE parser for OpenAI-compatible streaming APIs.
-  // extractChunk(parsedEvent) returns the delta string, or '' to skip the event.
+  // Generic SSE parser. extractChunk(parsedEvent) returns delta string or ''.
   async _streamSSE(url, opts, onChunk, extractChunk) {
     const res = await fetch(url, opts);
     if (!res.ok) {
@@ -38,21 +38,25 @@ class BaseProvider {
     const decoder = new TextDecoder();
     let full = '';
     let buffer = '';
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const data = line.slice(6).trim();
-        if (data === '[DONE]') continue;
-        try {
-          const chunk = extractChunk(JSON.parse(data));
-          if (chunk) { full += chunk; onChunk(chunk); }
-        } catch {}
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (data === '[DONE]') continue;
+          try {
+            const chunk = extractChunk(JSON.parse(data));
+            if (chunk) { full += chunk; onChunk(chunk); }
+          } catch {}
+        }
       }
+    } finally {
+      try { reader.cancel(); } catch {}
     }
     return full;
   }
@@ -68,3 +72,33 @@ class BaseProvider {
   }
 }
 self.BaseProvider = BaseProvider;
+
+// Shared implementation for OpenAI / Grok / Groq. Subclasses set this.url and this.model.
+class OpenAICompatProvider extends BaseProvider {
+  _headers() {
+    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.apiKey}` };
+  }
+  _body(messages, systemPrompt, extra) {
+    return JSON.stringify({
+      model: this.model,
+      max_tokens: 2048,
+      messages: this._msgs(messages, systemPrompt),
+      ...extra
+    });
+  }
+  async complete(messages, systemPrompt) {
+    const data = await this._fetchJson(this.url, {
+      method: 'POST', headers: this._headers(), body: this._body(messages, systemPrompt)
+    });
+    return data.choices?.[0]?.message?.content || '';
+  }
+  async completeStream(messages, systemPrompt, onChunk) {
+    return this._streamSSE(
+      this.url,
+      { method: 'POST', headers: this._headers(), body: this._body(messages, systemPrompt, { stream: true }) },
+      onChunk,
+      ev => ev.choices?.[0]?.delta?.content || ''
+    );
+  }
+}
+self.OpenAICompatProvider = OpenAICompatProvider;

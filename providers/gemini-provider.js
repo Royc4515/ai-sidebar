@@ -1,5 +1,5 @@
 class GeminiProvider extends BaseProvider {
-  // Gemini uses "model" for the assistant role, and takes a different message format.
+  // Gemini's API uses role:"model" for assistant turns and contents[].parts[].
   async complete(messages, systemPrompt) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(this.apiKey)}`;
     const contents = messages.map(m => ({
@@ -17,6 +17,5 @@ class GeminiProvider extends BaseProvider {
     });
     return data.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
   }
-  // completeStream falls back to base class (single-chunk emit via complete)
 }
 self.GeminiProvider = GeminiProvider;
