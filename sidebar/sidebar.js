@@ -251,6 +251,7 @@ window.addEventListener('message', (e) => {
   if (msg.type === 'PAGE_CONTENT')  pageContent = msg.content || '';
   if (msg.type === 'SELECTED_TEXT') { selectedText = msg.text || ''; updateSelectionUI(); }
   if (msg.type === 'SIDEBAR_OPENED') {
+    if (msg.dir === 'rtl' || msg.dir === 'ltr') document.documentElement.dir = msg.dir;
     requestPageContent();
     window.parent.postMessage({ type: 'REQUEST_SELECTED_TEXT' }, '*');
   }
@@ -542,12 +543,7 @@ function renderTables(text) {
   });
 }
 
-// ── Direction ─────────────────────────────────────────────────────────
-(function setDir() {
-  try {
-    const docDir = window.parent?.document?.dir || '';
-    if (docDir) document.documentElement.dir = docDir;
-  } catch {}
-})();
+// Direction is applied via the SIDEBAR_OPENED message from content.js —
+// the iframe cannot read window.parent.document directly (cross-origin).
 
 init();
