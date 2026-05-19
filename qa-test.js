@@ -207,31 +207,64 @@ async function main() {
     , tabId);
     await wait(800);
 
-    // ── Suite 4: Chat & streaming ──────────────────────────────────────────
-    console.log('\nSuite 4 — Chat & streaming');
+    // ── Suite 4: Chat & streaming cursor (F4) ─────────────────────────────
+    console.log('\nSuite 4 — Chat & streaming cursor (F4)');
 
     // Clear selection first
     await page.evaluate(() => window.getSelection().removeAllRanges());
 
+    // Install a slow-stream fetch mock directly in the service worker.
+    // It returns a ReadableStream that drips chunks every 120 ms so the
+    // streaming cursor is visible before the stream ends.
+    // Because no real network request is ever made, ctx.route is never
+    // triggered — the two interception layers don't conflict.
+    await sw.evaluate(() => {
+      const WORDS = 'Slow stream verifies cursor visibility during streaming response end.'.split(' ');
+      const saved  = self.fetch.bind(self);
+      self.__savedFetch = saved;
+      self.fetch = (url, opts) => {
+        if (typeof url === 'string' && url.includes('api.anthropic.com')) {
+          const enc = new TextEncoder();
+          const stream = new ReadableStream({
+            async start(ctrl) {
+              for (const w of WORDS) {
+                await new Promise(r => setTimeout(r, 120));
+                ctrl.enqueue(enc.encode(
+                  `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"${w} "}}\n\n`
+                ));
+              }
+              ctrl.enqueue(enc.encode('data: {"type":"message_stop"}\n\ndata: [DONE]\n\n'));
+              ctrl.close();
+            }
+          });
+          return Promise.resolve(new Response(stream, {
+            status: 200,
+            headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' }
+          }));
+        }
+        return saved(url, opts);
+      };
+    });
+
     const askInput = frame.locator('#ask-input');
     await askInput.fill('What is this page about?');
     await frame.locator('#ask-btn').click();
-    await wait(400);
+    await wait(400); // first chunk ~120ms in; at 400ms ~3/9 chunks delivered
 
     const userBubble = await frame.locator('.sb-turn--user').isVisible().catch(() => false);
     if (userBubble) pass('User message bubble rendered immediately');
     else            fail('User message bubble', 'not visible after send');
 
-    // Loading skeleton or cursor
-    const loadingOrStreaming = await Promise.race([
-      frame.locator('.sb-skeleton').isVisible(),
-      frame.locator('.sb-cursor').isVisible()
-    ]).catch(() => false);
-    if (loadingOrStreaming) pass('Loading/streaming indicator shown');
-    else                    pass('Loading/streaming (fast mock, may have resolved instantly)');
+    // Cursor MUST be visible: 9 words × 120ms ≈ 1.08s total; 400ms in, ~6 chunks remain
+    const cursorMid = await frame.locator('.sb-cursor').isVisible().catch(() => false);
+    if (cursorMid) pass('Streaming cursor visible mid-stream');
+    else           fail('Streaming cursor visible mid-stream',
+                        '.sb-cursor not found at ~400ms into a ~1.1s stream');
 
     await screenshot(page, 'streaming-state');
-    await wait(2500);
+
+    // Wait for stream to finish (remaining ~680ms) + slack
+    await wait(2000);
 
     const turnCount = await frame.locator('.sb-turn').count().catch(() => 0);
     if (turnCount >= 2) pass(`Both turns rendered (${turnCount} turns)`);
@@ -243,9 +276,14 @@ async function main() {
 
     const cursorGone = !(await frame.locator('.sb-cursor').isVisible().catch(() => false));
     if (cursorGone) pass('Streaming cursor gone after completion');
-    else            fail('Streaming cursor gone', 'cursor still visible');
+    else            fail('Streaming cursor gone', 'cursor still present after stream ended');
 
     await screenshot(page, 'response-complete');
+
+    // Restore original fetch so subsequent suites use ctx.route normally
+    await sw.evaluate(() => {
+      if (self.__savedFetch) { self.fetch = self.__savedFetch; delete self.__savedFetch; }
+    });
 
     // ── Suite 5: New chat ──────────────────────────────────────────────────
     console.log('\nSuite 5 — New chat');
@@ -342,6 +380,65 @@ async function main() {
     else                                 fail('User bubble display label', `got: "${userText.slice(0,80)}"`);
 
     await screenshot(page, 'explain-label');
+
+    // ── Suite 8: Page action display label (F2) + find routing (F3) ──────
+    console.log('\nSuite 8 — Page action display label (F2) + find routing (F3)');
+
+    await frame.locator('#new-chat-btn').click();
+    await wait(300);
+
+    // Make sure we have a good route
+    await ctx.unroute('**/api.anthropic.com/**');
+    await ctx.route('**/api.anthropic.com/**', route =>
+      route.fulfill({
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': '*' },
+        body: claudeSseBody()
+      })
+    );
+
+    // F2: click the "Summarize this page" hero suggest button;
+    // the user bubble should show the display label, not the raw API prompt.
+    const summarizeHero = frame.locator('.sb-suggest-btn[data-action="summarize"]');
+    if (await summarizeHero.isVisible().catch(() => false)) {
+      await summarizeHero.click();
+      await wait(2500);
+      const bubbleText = await frame.locator('.sb-turn--user .sb-turn-content--user')
+        .first().textContent().catch(() => '');
+      const isDisplayLabel  = bubbleText === 'Summarize this page';
+      const isRawPrompt     = bubbleText.startsWith('Summarize this page in concise');
+      if (isDisplayLabel)   pass('F2 — summarize bubble shows display label, not raw prompt');
+      else if (isRawPrompt) fail('F2 — summarize bubble display label', 'shows raw API prompt instead');
+      else                  fail('F2 — summarize bubble display label', `unexpected text: "${bubbleText.slice(0,80)}"`);
+    } else {
+      fail('F2 — summarize hero button found', 'button not visible');
+    }
+
+    await screenshot(page, 'page-action-label');
+
+    // F3: switch to Tools tab, click the "Find on page" card.
+    // Before F3 fix this was a silent no-op; now it must focus ask-input.
+    await frame.locator('#new-chat-btn').click();
+    await wait(200);
+    await frame.locator('.sb-tab[data-tab="tools"]').click();
+    await wait(300);
+
+    const findCard = frame.locator('.sb-action-card[data-action="find"]');
+    if (await findCard.isVisible().catch(() => false)) {
+      await findCard.click();
+      await wait(400); // click switches to chat tab, then handleAction('find') runs
+
+      // The placeholder changes to the find prompt and input is focused
+      const placeholder = await frame.locator('#ask-input').getAttribute('placeholder').catch(() => '');
+      if (placeholder.includes('find on this page'))
+        pass('F3 — find card changes input placeholder (not a silent no-op)');
+      else
+        fail('F3 — find card changes input placeholder', `got: "${placeholder}"`);
+    } else {
+      fail('F3 — find card visible in tools tab', 'card not found');
+    }
+
+    await screenshot(page, 'find-card');
 
     // ── Final screenshot ───────────────────────────────────────────────────
     await screenshot(page, 'final');
